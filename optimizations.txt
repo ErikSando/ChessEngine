@@ -1,0 +1,56 @@
+=========================================================
+
+Starting position:
+
+pure minimax (depth 6):
+
+nodes:	129,421,119
+time:	20,922
+
+alpha beta (depth 6):
+
+nodes:	2,904,074
+time:	500
+
+mvv lva move ordering (depth 6):
+
+nodes:	1640646
+time:	344
+
+(starting position doesnt have many captures so this effect would be larger in most positions)
+
+time does not matter at this point onwards, it isnt accurate at such small values
+
+killer/history heuristics (depth 6):
+
+nodes:	104421
+time:	31
+
+pv scoring (depth 6):
+
+nodes:	115225
+time:	32
+
+null move pruning (depth 6, 8):
+
+nodes:	63071,	1918439
+time:	15,	500
+
+late move reductions + pv search (depth 6, 8):
+
+nodes:	41297,	940309
+time:	15,	281
+
+==================================================
+
+middle game position (lots of captures, depth 6):
+
+without move ordering:
+
+nodes:	2,131,204
+time:	407
+
+with move ordering:
+
+nodes:	361,743
+time:	156

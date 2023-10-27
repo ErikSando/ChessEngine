@@ -1,4 +1,4 @@
 @echo off
 cd src
-make
+make debug
 pause

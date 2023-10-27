@@ -1,0 +1,56 @@
+=== Board Representation ===
+
+Position struct
+Bitboards
+Set bit, get bit, clear bit, set occupancy, print
+Attack masks for non slider pieces
+Magic numbers for rook and bishop
+Hash keys
+
+
+=== Move Generation ===
+
+MoveList struct
+Pawn quiet moves
+Pawn captures
+Pawn promotions
+Non slider pieces (knights, kings)
+Slider pieces (bishops, rooks, queens)
+
+
+=== Move Handling ===
+
+Copy board
+RestoreBoard
+MakeMove
+Handle captures, en passant, castling
+Incremental hash key updating
+Perft testing
+
+
+=== Search ===
+
+Checkmate/stalemate/repitition detection
+Iterative deepening
+Minimax
+Alpha beta pruning
+Move ordering
+PV search
+Late move reductions
+Null move pruning
+Aspiration window
+Transposition table
+
+
+=== Evaluation ===
+
+Material count
+Piece square tables
+Mobility
+Tapered eval
+Material draw
+Stacked, isolated, passed pawns
+Rooks/queens on open/semi open files
+Bishop pair
+Deduct points if king is on a weak square without castling permission
+Pawns in front of king
