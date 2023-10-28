@@ -25,6 +25,19 @@ static inline void AddMove(int move, int score, MoveList* list) {
 	list->count++;
 }
 
+int MoveExists(int move, Position* position) {
+	MoveList list[1];
+	GenerateMoves(position, list);
+
+	for (int i = 0; i < list->count; i++) {
+		if (list->moves[i].move != move || !MakeMove(list->moves[i].move, position)) continue;
+		TakeMove(position);
+		return True;
+	}
+
+	return False;
+}
+
 void GenerateMoves(const Position* position, MoveList* list) {
 	list->count = 0;
 

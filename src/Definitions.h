@@ -10,6 +10,7 @@
 #define Infinity 30000
 #define MateScore Infinity - MaxDepth
 #define IsMate(score) ((score) >= MateScore)
+#define MateDistance(score) (Infinity - (score))
 
 #define StartFEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -43,7 +44,8 @@ typedef unsigned long long U64;
 #define GetBit(bitboard, square) ((bitboard) & (1ULL << (square)))
 #define ClearBit(bitboard, square) (GetBit((bitboard), (square)) ? (bitboard) ^= (1ULL << (square)) : 0)
 #define CountBits(bitboard) __builtin_popcountll((bitboard))
-#define GLS1BI(bitboard) ((bitboard) ? CountBits(((bitboard) & -(bitboard)) - 1) : -1)
+//#define GLS1BI(bitboard) ((bitboard) ? CountBits(((bitboard) & -(bitboard)) - 1) : -1)
+#define GLS1BI(bitboard) (CountBits(((bitboard) & -(bitboard)) - 1)) // get least significant 1st bit index
 
 #define FromSquare(move) ((move) & 0x3F)
 #define ToSquare(move) (((move) & 0xFC0) >> 6)
@@ -79,6 +81,25 @@ typedef struct {
 	int count;
 } MoveList;
 
+#define ExactFlag 0
+#define AlphaFlag 1
+#define BetaFlag 2
+
+#define NoScore 40000
+
+typedef struct {
+	U64 positionKey;
+	int move;
+	int score;
+	int depth;
+	int flag;
+} HashEntry;
+
+typedef struct {
+	HashEntry* entries;
+	int count;
+} HashTable;
+
 typedef struct {
 	int time;
 	int startTime;
@@ -88,6 +109,7 @@ typedef struct {
 	int stopped;
 	int bestMove;
 	long nodes;
+	int quit;
 } SearchInfo;
 
 typedef struct {
@@ -109,11 +131,12 @@ typedef struct {
 	int castling;
 	int fiftyMoveRule;
 	int ply;
+	int historyPly;
+	PositionInfo history[MaxGameMoves];
 	int killerMoves[2][MaxDepth];
 	int historyMoves[12][64];
-	PositionInfo history[MaxGameMoves];
-	int pvLength[MaxDepth];
-	int pvTable[MaxDepth][MaxDepth];
+	HashTable hashTable[1];
+	int pvArray[MaxDepth];
 } Position;
 
 extern int SquareFiles[64];
@@ -157,6 +180,7 @@ extern void PrintBitboard(U64 bitboard);
 extern void ParseFEN(char* fen, Position* position);
 extern int SquareAttacked(int square, int side, const Position* position);
 
+extern int MoveExists(int move, Position* position);
 extern void GenerateMoves(const Position* position, MoveList* list);
 extern void GenerateCaptures(const Position* position, MoveList* list);
 
@@ -171,6 +195,12 @@ extern void TakeNullMove(Position* position);
 extern void PerftTest(int depth, Position* position);
 
 extern int Evaluate(const Position* position);
+
+extern void ClearHashTable(HashTable* table);
+extern void InitHashTable(HashTable* table, const int MB);
+extern int GetHashEntry(int* pvMove, int alpha, int beta, int depth, Position* position);
+extern void StoreHashEntry(int move, int score, int depth, int flag, Position* position);
+extern int GetPvLength(const int depth, Position* position);
 
 extern void Search(Position* position, SearchInfo* info);
 

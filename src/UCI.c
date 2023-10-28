@@ -44,8 +44,6 @@ void ParsePosition(char* line, Position* position) {
 			ptr++;
 		}
 	}
-
-	PrintBoard(position);
 }
 
 void ParseGo(char* line, Position* position) {
@@ -95,8 +93,20 @@ void ParseGo(char* line, Position* position) {
 	Search(position, info);
 }
 
+static inline int IsRepetition(Position* position) {
+	int repetitions = 0;
+
+	for (int i = position->ply - position->fiftyMoveRule; i < position->ply - 1; i += 2) {
+		if (position->positionKey == position->history[i].positionKey) repetitions++;
+	}
+
+	// current position is not counted, so 2 repetitions would mean 3 total occurences
+	return repetitions >= 2;
+}
+
 void UCILoop() {
 	Position position[1];
+	InitHashTable(position->hashTable, 64);
 
 	ParseFEN(StartFEN, position);
 
@@ -117,6 +127,7 @@ void UCILoop() {
 
 		if (!strncmp(input, "ucinewgame", 10)) {
 			ParseFEN(StartFEN, position);
+			ClearHashTable(position->hashTable);
 		}
 		else if (!strncmp(input, "uci", 3)) {
 			printf("uciok\n");
@@ -143,6 +154,9 @@ void UCILoop() {
 			int depth = atoi(input + 5);
 			PerftTest(depth, position);
 		}
+		else if (!strncmp(input, "rep", 3)) {
+			printf("%s\n", IsRepetition(position) ? "is repetition" : "is not repetition");
+		}
 		else if (!strncmp(input, "take", 4)) {
 			if (position->ply > 0) {
 				TakeMove(position);
@@ -158,4 +172,6 @@ void UCILoop() {
 			}
 		}
 	}
+
+	free(position->hashTable->entries);
 }

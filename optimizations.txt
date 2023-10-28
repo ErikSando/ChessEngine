@@ -14,21 +14,21 @@ time:	500
 
 mvv lva move ordering (depth 6):
 
-nodes:	1640646
+nodes:	1,640,646
 time:	344
 
 (starting position doesnt have many captures so this effect would be larger in most positions)
 
-time does not matter at this point onwards, it isnt accurate at such small values
+*time it isnt accurate at small values
 
 killer/history heuristics (depth 6):
 
-nodes:	104421
+nodes:	104,421
 time:	31
 
 pv scoring (depth 6):
 
-nodes:	115225
+nodes:	115,225
 time:	32
 
 null move pruning (depth 6, 8):
@@ -40,6 +40,20 @@ late move reductions + pv search (depth 6, 8):
 
 nodes:	41297,	940309
 time:	15,	281
+
+==================================================
+
+middle game position
+
+without transposition table (depth 8):
+
+nodes:	3,274,922
+time:	875
+
+with transposition table (depth 8):
+
+nodes:	2,439,479
+time:	657
 
 ==================================================
 

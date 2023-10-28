@@ -12,6 +12,8 @@ void ResetBoard(Position* position) {
 	position->enPassant = NoSquare;
 	position->castling = 0;
 	position->fiftyMoveRule = 0;
+	position->ply = 0;
+	position->historyPly = 0;
 }
 
 U64 GeneratePositionKey(Position* position) {

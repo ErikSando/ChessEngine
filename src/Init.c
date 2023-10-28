@@ -33,8 +33,8 @@ U64 Rand64() {
 
 void InitFileRankLookup() {
 	for (int square = 0; square < 64; square++) {
-		int file = square % 8;
-		int rank = (square - file) / 8;
+		int file = square & 7;
+		int rank = square >> 3;
 
 		SquareFiles[square] = file;
 		SquareRanks[square] = rank;

@@ -1,0 +1,5 @@
+better move ordering:
+
+- if not a capture, score higher based on how much it improves piece square table evaluation (maybe only for knights/bishops/rooks/queens)
+
+- 

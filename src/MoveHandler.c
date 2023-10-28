@@ -19,7 +19,7 @@ const int CastlingUpdate[64] = {
 };
 
 static inline void SaveBoard(Position* position) {
-
+	// could use this and restore board to cut down the lines of code but doesnt seem necessary
 }
 
 static inline void RestoreBoard(Position* position) {
@@ -34,16 +34,17 @@ int MakeMove(int move, Position* position) {
 	int side = position->side;
 	int enemy = side ^ 1;
 
-	memcpy(position->history[position->ply].bitboards, position->bitboards, sizeof(position->bitboards));
-	memcpy(position->history[position->ply].occupancy, position->occupancy, sizeof(position->occupancy));
+	memcpy(position->history[position->historyPly].bitboards, position->bitboards, sizeof(position->bitboards));
+	memcpy(position->history[position->historyPly].occupancy, position->occupancy, sizeof(position->occupancy));
 
-	position->history[position->ply].positionKey = position->positionKey;
-	position->history[position->ply].side = position->side;
-	position->history[position->ply].enPassant = position->enPassant;
-	position->history[position->ply].castling = position->castling;
-	position->history[position->ply].fiftyMoveRule = position->fiftyMoveRule;
+	position->history[position->historyPly].positionKey = position->positionKey;
+	position->history[position->historyPly].side = position->side;
+	position->history[position->historyPly].enPassant = position->enPassant;
+	position->history[position->historyPly].castling = position->castling;
+	position->history[position->historyPly].fiftyMoveRule = position->fiftyMoveRule;
 
 	position->ply++;
+	position->historyPly++;
 	
 	ClearBit(position->bitboards[piece], fromSquare);
 	ClearBit(position->occupancy[side], fromSquare);
@@ -148,39 +149,50 @@ int MakeMove(int move, Position* position) {
 
 void TakeMove(Position* position) {
 	position->ply--;
+	position->historyPly--;
 
-	memcpy(position->bitboards, position->history[position->ply].bitboards, sizeof(position->history[position->ply].bitboards));
-	memcpy(position->occupancy, position->history[position->ply].occupancy, sizeof(position->history[position->ply].occupancy));
+	memcpy(position->bitboards, position->history[position->historyPly].bitboards, sizeof(position->history[position->historyPly].bitboards));
+	memcpy(position->occupancy, position->history[position->historyPly].occupancy, sizeof(position->history[position->historyPly].occupancy));
 
-	position->positionKey = position->history[position->ply].positionKey;
-	position->side = position->history[position->ply].side;
-	position->enPassant = position->history[position->ply].enPassant;
-	position->castling = position->history[position->ply].castling;
-	position->fiftyMoveRule = position->history[position->ply].fiftyMoveRule;
+	position->positionKey = position->history[position->historyPly].positionKey;
+	position->side = position->history[position->historyPly].side;
+	position->enPassant = position->history[position->historyPly].enPassant;
+	position->castling = position->history[position->historyPly].castling;
+	position->fiftyMoveRule = position->history[position->historyPly].fiftyMoveRule;
 }
 
 void MakeNullMove(Position* position) {
-	memcpy(position->history[position->ply].bitboards, position->bitboards, sizeof(position->bitboards));
-	memcpy(position->history[position->ply].occupancy, position->occupancy, sizeof(position->occupancy));
+	memcpy(position->history[position->historyPly].bitboards, position->bitboards, sizeof(position->bitboards));
+	memcpy(position->history[position->historyPly].occupancy, position->occupancy, sizeof(position->occupancy));
 
-	position->history[position->ply].positionKey = position->positionKey;
-	position->history[position->ply].side = position->side;
-	position->history[position->ply].enPassant = position->enPassant;
-	position->history[position->ply].castling = position->castling;
-	position->history[position->ply].fiftyMoveRule = position->fiftyMoveRule;
+	position->history[position->historyPly].positionKey = position->positionKey;
+	position->history[position->historyPly].side = position->side;
+	position->history[position->historyPly].enPassant = position->enPassant;
+	position->history[position->historyPly].castling = position->castling;
+	position->history[position->historyPly].fiftyMoveRule = position->fiftyMoveRule;
+
+	position->side ^= 1;
+	HashSide;
+
+	if (position->enPassant != NoSquare) {
+		HashEnPassant;
+		position->enPassant = NoSquare;
+	}
 
 	position->ply++;
+	position->historyPly++;
 }
 
 void TakeNullMove(Position* position) {
 	position->ply--;
+	position->historyPly--;
 
-	memcpy(position->bitboards, position->history[position->ply].bitboards, sizeof(position->history[position->ply].bitboards));
-	memcpy(position->occupancy, position->history[position->ply].occupancy, sizeof(position->history[position->ply].occupancy));
+	memcpy(position->bitboards, position->history[position->historyPly].bitboards, sizeof(position->history[position->historyPly].bitboards));
+	memcpy(position->occupancy, position->history[position->historyPly].occupancy, sizeof(position->history[position->historyPly].occupancy));
 
-	position->positionKey = position->history[position->ply].positionKey;
-	position->side = position->history[position->ply].side;
-	position->enPassant = position->history[position->ply].enPassant;
-	position->castling = position->history[position->ply].castling;
-	position->fiftyMoveRule = position->history[position->ply].fiftyMoveRule;
+	position->positionKey = position->history[position->historyPly].positionKey;
+	position->side = position->history[position->historyPly].side;
+	position->enPassant = position->history[position->historyPly].enPassant;
+	position->castling = position->history[position->historyPly].castling;
+	position->fiftyMoveRule = position->history[position->historyPly].fiftyMoveRule;
 }

@@ -7,8 +7,6 @@
 #define FullDepthMoves 4
 #define ReductionLimit 3
 
-int bestMove;
-
 void CheckTimeUp(SearchInfo* info) {
 	if (info->timeSet && (GetTimeMS() > info->stopTime)) info->stopped = True;
 
@@ -18,8 +16,6 @@ void CheckTimeUp(SearchInfo* info) {
 void ResetSearchInfo(Position* position, SearchInfo* info) {
 	memset(position->killerMoves, 0, sizeof(position->killerMoves));
 	memset(position->historyMoves, 0, sizeof(position->historyMoves));
-	memset(position->pvLength, 0, sizeof(position->pvLength));
-	memset(position->pvTable, 0, sizeof(position->pvTable));
 
 	position->ply = 0;
 
@@ -27,12 +23,15 @@ void ResetSearchInfo(Position* position, SearchInfo* info) {
 	info->nodes = 0;
 }
 
-static inline int IsRepitition(Position* position) {
-	for (int i = position->ply - position->fiftyMoveRule; i < position->ply - 1; i++) {
-		if (position->positionKey == position->history[i].positionKey) return True;
+static inline int IsRepetition(Position* position) {
+	int repetitions = 0;
+
+	for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i += 2) {
+		if (position->positionKey == position->history[i].positionKey) repetitions++;
 	}
 
-	return False;
+	// current position is not counted, so 2 repetitions would mean 3 total occurences
+	return repetitions >= 2;
 }
 
 static inline void OrderMove(int index, MoveList* list) {
@@ -57,7 +56,7 @@ static inline int Quiescence(int alpha, int beta, Position* position, SearchInfo
 
 	info->nodes++;
 
-	if (IsRepitition(position) || position->fiftyMoveRule >= 100) return 0;
+	if (IsRepetition(position) || position->fiftyMoveRule >= 100) return 0;
 
 	int score = Evaluate(position);
 
@@ -94,18 +93,14 @@ static inline int Quiescence(int alpha, int beta, Position* position, SearchInfo
 }
 
 static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, SearchInfo* info, int doNull) {
-	position->pvLength[position->ply] = position->ply;
-
 	if (depth <= 0) return Quiescence(alpha, beta, position, info);
 
 	if ((info->nodes & 2047) == 0) CheckTimeUp(info);
 
 	info->nodes++;
 
-	if (IsRepitition(position) || position->fiftyMoveRule >= 100) return 0;
+	if (IsRepetition(position) || position->fiftyMoveRule >= 100) return 0;
 	if (position->ply >= MaxDepth) return Evaluate(position);
-
-	int foundPv = False;
 
 	int kingSquare = GLS1BI(position->bitboards[position->side == White ? wK : bK]);
 	int inCheck = SquareAttacked(kingSquare, position->side ^ 1, position);
@@ -118,25 +113,32 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 		if (opponentInCheck) depth++;
 	}
 
-	/*if (doNull && !inCheck && position->ply && depth >= 3) {
+	int pvMove = 0;
+	//int pvNode = beta - alpha > 1;
+	int score = GetHashEntry(&pvMove, alpha, beta, depth, position);
+
+	if (position->ply && score != NoScore) return score;
+	//if (position->ply && !pvNode && score != NoScore) return score;
+
+	if (doNull && !inCheck && position->ply && depth >= 3) {
 		MakeNullMove(position);
 
-		int score = -AlphaBeta(-beta, -beta + 1, depth - 1 - NullMoveReduction, position, info, False);
+		score = -AlphaBeta(-beta, -beta + 1, depth - 1 - NullMoveReduction, position, info, False);
 
 		TakeNullMove(position);
 
 		if (info->stopped) return 0;
 
 		if (score >= beta && !IsMate(score)) return beta;
-	}*/
+	}
 
 	int legalMoves = 0;
 	int movesSearched = 0;
+	int oldAlpha = alpha;
+	int bestMove = 0;
 
 	MoveList list[1];
 	GenerateMoves(position, list);
-
-	int pvMove = position->pvTable[0][position->ply];
 
 	if (pvMove) {
 		for (int i = 0; i < list->count; i++) {
@@ -147,6 +149,8 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 		}
 	}
 
+	int hashFlag = AlphaFlag;
+
 	for (int i = 0; i < list->count; i++) {
 		OrderMove(i, list);
 
@@ -155,9 +159,6 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 		if (!MakeMove(move, position)) continue;
 
 		legalMoves++;
-
-		int score;
-		//int score = -AlphaBeta(-beta, -alpha, depth - 1, position, info, True);
 
 		if (movesSearched == 0) {
 			score = -AlphaBeta(-beta, -alpha, depth - 1, position, info, True);
@@ -185,6 +186,8 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 
 		if (score > alpha) {
 			if (score >= beta) {
+				StoreHashEntry(move, beta, depth, BetaFlag, position);
+
 				if (!IsCapture(move)) {
 					position->killerMoves[1][position->ply] = position->killerMoves[0][position->ply];
 					position->killerMoves[0][position->ply] = move;
@@ -193,17 +196,11 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 				return beta;
 			}
 
+			bestMove = move;
+
+			hashFlag = ExactFlag;
 			alpha = score;
 
-			foundPv = True;
-			position->pvTable[position->ply][position->ply] = move;
-
-			for (int nextPly = position->ply + 1; nextPly < position->pvLength[position->ply + 1]; nextPly++) {
-				position->pvTable[position->ply][nextPly] = position->pvTable[position->ply + 1][nextPly];
-			}
-
-			position->pvLength[position->ply] = position->pvLength[position->ply + 1];
-			
 			if (!IsCapture(move)) {
 				position->historyMoves[MovedPiece(move)][ToSquare(move)] += depth;
 			}
@@ -215,6 +212,8 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 		else return 0;
 	}
 
+	StoreHashEntry(bestMove, alpha, depth, hashFlag, position);
+	
 	return alpha;
 }
 
@@ -229,16 +228,17 @@ void Search(Position* position, SearchInfo* info) {
 
 		if (info->stopped) break;
 
+		int pvLength = GetPvLength(depth, position);
+
 		printf("info score cp %d depth %d nodes %d time %d pv",
 			score, depth, info->nodes, (GetTimeMS() - info->startTime));
 
-		for (int i = 0; i < position->pvLength[0]; i++) {
-			printf(" %s", MoveString(position->pvTable[0][i]));
+		for (int i = 0; i < pvLength; i++) {
+			printf(" %s", MoveString(position->pvArray[i]));
 		}
 
 		printf("\n");
 
-		/*
 		if (score <= alpha || score >= beta) {
 			alpha = -Infinity;
 			beta = Infinity;
@@ -247,8 +247,7 @@ void Search(Position* position, SearchInfo* info) {
 
 		alpha = score - Window;
 		beta = score + Window;
-		*/
 	}
 
-	printf("bestmove %s\n", MoveString(position->pvTable[0][0]));
+	printf("bestmove %s\n", MoveString(position->pvArray[0]));
 }

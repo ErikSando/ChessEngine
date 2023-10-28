@@ -10,13 +10,13 @@ U64 BlackPassedMask[64];
 U64 IsolatedMask[8];
 U64 StackedMask[64];
 
-const int IsolatedPawnPenalty = 15;
+const int IsolatedPawnPenalty = 10;
 const int StackedPawnPenalty = 5;
 
-const int RookOpenFileBonus = 20;
-const int RookSemiOpenFileBonus = 15;
+const int RookOpenFileBonus = 12;
+const int RookSemiOpenFileBonus = 8;
 
-const int QueenOpenFileBonus = 10;
+const int QueenOpenFileBonus = 8;
 const int QueenSemiOpenFileBonus = 5;
 
 const int BishopPairBonus = 30;
@@ -124,6 +124,17 @@ const int KingEgTable[64] = {
 	-20, -10,   0,  10,  10,   0, -10, -20,
 	-30, -20, -10,   0,   0, -10, -20, -30,
 	-40, -30, -20, -10, -10, -20, -30, -40
+};
+
+const int CenterManhattanDistance[64] = {
+	6, 5, 4, 3, 3, 4, 5, 6,
+	5, 4, 3, 2, 2, 3, 4, 5,
+	4, 3, 2, 1, 1, 2, 3, 4,
+	3, 2, 1, 0, 0, 1, 2, 3,
+	3, 2, 1, 0, 0, 1, 2, 3,
+	4, 3, 2, 1, 1, 2, 3, 4,
+	5, 4, 3, 2, 2, 3, 4, 5,
+	6, 5, 4, 3, 3, 4, 5, 6
 };
 
 const int* PieceMgTables[6] = {
@@ -237,7 +248,7 @@ static inline int MaterialDraw(const Position* position) {
 	int rooks[2] = { CountBits(position->bitboards[wR]), CountBits(position->bitboards[bR]) };
 	int queens[2] = { CountBits(position->bitboards[wQ]), CountBits(position->bitboards[bQ]) };
 
-	if (!rooks[White] && !rooks[Black]) {
+	if (!rooks[White] && !rooks[Black] && !queens[White] && !queens[Black]) {
 		if (!bishops[White] && !bishops[Black]) {
 			if (knights[White] < 3 && knights[Black] < 3) return True;
 		}
@@ -261,6 +272,18 @@ static inline int MaterialDraw(const Position* position) {
 	}
 
 	return False;
+}
+
+static int ManhattanDistance(int square1, int square2) {
+	int file1 = GetFile(square1);
+	int file2 = GetFile(square2);
+	int rank1 = GetRank(square1);
+	int rank2 = GetRank(square2);
+
+	int fileDistance = abs(file2 - file1);
+	int rankDistance = abs(rank2 - rank1);
+
+	return fileDistance + rankDistance;
 }
 
 int Evaluate(const Position* position) {
@@ -385,6 +408,13 @@ int Evaluate(const Position* position) {
 		egScore += EgTables[piece][square];
 
 		gamePhase += GamePhaseIncrement[piece];
+
+		if ((StackedMask[square] & (position->bitboards[wP] | position->bitboards[bP])) == 0) {
+			score += RookOpenFileBonus;
+		}
+		else if ((StackedMask[square] & position->bitboards[wP]) == 0) {
+			score += RookSemiOpenFileBonus;
+		}
 	}
 
 	piece = bR;
@@ -398,6 +428,13 @@ int Evaluate(const Position* position) {
 		egScore -= EgTables[piece][square];
 
 		gamePhase += GamePhaseIncrement[piece];
+
+		if ((StackedMask[square] & (position->bitboards[bP] | position->bitboards[wP])) == 0) {
+			score -= RookOpenFileBonus;
+		}
+		else if ((StackedMask[square] & position->bitboards[bP]) == 0) {
+			score -= RookSemiOpenFileBonus;
+		}
 	}
 
 	piece = wQ;
@@ -411,6 +448,13 @@ int Evaluate(const Position* position) {
 		egScore += EgTables[piece][square];
 
 		gamePhase += GamePhaseIncrement[piece];
+
+		if ((StackedMask[square] & (position->bitboards[wP] | position->bitboards[bP])) == 0) {
+			score += QueenOpenFileBonus;
+		}
+		else if ((StackedMask[square] & position->bitboards[wP]) == 0) {
+			score += QueenSemiOpenFileBonus;
+		}
 	}
 
 	piece = bQ;
@@ -424,6 +468,13 @@ int Evaluate(const Position* position) {
 		egScore -= EgTables[piece][square];
 
 		gamePhase += GamePhaseIncrement[piece];
+
+		if ((StackedMask[square] & (position->bitboards[bP] | position->bitboards[wP])) == 0) {
+			score -= QueenOpenFileBonus;
+		}
+		else if ((StackedMask[square] & position->bitboards[bP]) == 0) {
+			score -= QueenSemiOpenFileBonus;
+		}
 	}
 
 	piece = wK;
@@ -465,6 +516,20 @@ int Evaluate(const Position* position) {
 			if ((position->castling & BQC) == 0) {
 				mgScore += WeakKingNoCastlingPenalty;
 			}
+		}
+	}
+
+	if (CountBits(position->bitboards[wP]) == 0 && CountBits(position->bitboards[bP]) == 0) {
+		int wKingSquare = GLS1BI(position->bitboards[wK]);
+		int bKingSquare = GLS1BI(position->bitboards[bK]);
+
+		if (egScore > 0) {
+			score += 4.7 * CenterManhattanDistance[bKingSquare];
+			score += 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
+		}
+		else if (egScore < 0) {
+			score -= 4.7 * CenterManhattanDistance[wKingSquare];
+			score -= 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
 		}
 	}
 
