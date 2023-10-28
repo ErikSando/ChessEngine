@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "Definitions.h"
 
@@ -24,14 +25,19 @@ void ResetSearchInfo(Position* position, SearchInfo* info) {
 }
 
 static inline int IsRepetition(Position* position) {
-	int repetitions = 0;
+	//int repetitions = 0;
+	int start = position->historyPly - position->fiftyMoveRule;
+	if (start > 0) start = 0;
 
-	for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i += 2) {
-		if (position->positionKey == position->history[i].positionKey) repetitions++;
+	//for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i += 2) {
+	for (int i = start; i < position->historyPly - 1; i += 2) {
+		//if (position->positionKey == position->history[i].positionKey) repetitions++;
+		if (position->positionKey == position->history[i].positionKey) return True;
 	}
 
 	// current position is not counted, so 2 repetitions would mean 3 total occurences
-	return repetitions >= 2;
+	//return repetitions >= 2;
+	return False;
 }
 
 static inline void OrderMove(int index, MoveList* list) {
@@ -114,22 +120,22 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 	}
 
 	int pvMove = 0;
-	//int pvNode = beta - alpha > 1;
+	int pvNode = beta - alpha > 1;
 	int score = GetHashEntry(&pvMove, alpha, beta, depth, position);
 
-	if (position->ply && score != NoScore) return score;
-	//if (position->ply && !pvNode && score != NoScore) return score;
+	if (position->ply && score != NoScore && !pvNode) return score;
+	//if (position->ply && score != NoScore) return score;
 
 	if (doNull && !inCheck && position->ply && depth >= 3) {
 		MakeNullMove(position);
 
-		score = -AlphaBeta(-beta, -beta + 1, depth - 1 - NullMoveReduction, position, info, False);
+		score = -AlphaBeta(-beta, -beta + 1, depth - 1 - NullMoveReduction, position, info, True);
 
 		TakeNullMove(position);
 
 		if (info->stopped) return 0;
 
-		if (score >= beta && !IsMate(score)) return beta;
+		if (score >= beta && abs(score) < MateScore) return beta;
 	}
 
 	int legalMoves = 0;
@@ -230,8 +236,14 @@ void Search(Position* position, SearchInfo* info) {
 
 		int pvLength = GetPvLength(depth, position);
 
-		printf("info score cp %d depth %d nodes %d time %d pv",
-			score, depth, info->nodes, (GetTimeMS() - info->startTime));
+		printf("info score ");
+
+		if (score > MateScore) printf("mate %d ", (Infinity - score) / 2 + 1);
+		else if (score < -MateScore) printf("mate %d ", -(score + Infinity) / 2 - 1);
+		else printf("cp %d ", score);
+
+		printf("depth %d nodes %d time %d pv",
+			depth, info->nodes, (GetTimeMS() - info->startTime));
 
 		for (int i = 0; i < pvLength; i++) {
 			printf(" %s", MoveString(position->pvArray[i]));

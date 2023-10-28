@@ -1,5 +1,14 @@
+Assert function for debugging
+
 better move ordering:
 
 - if not a capture, score higher based on how much it improves piece square table evaluation (maybe only for knights/bishops/rooks/queens)
 
 - 
+
+king safety:
+
+- virtual queen mobility on king square (completed, hasn't been tested/tweaked)
+- pawn shield (completed, hasn't been tested/tweaked)
+- castling strategy (semi completed, hasn't been tested/tweaked)
+- pawn storm

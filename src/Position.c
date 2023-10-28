@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "Definitions.h"
 
@@ -130,7 +131,11 @@ void ParseFEN(char* fen, Position* position) {
 		rank = fen[1] - '1';
 
 		position->enPassant = GetSquare(file, rank);
+
+		fen++;
 	}
+
+	position->fiftyMoveRule = atoi(fen + 2);
 
 	position->positionKey = GeneratePositionKey(position);
 }

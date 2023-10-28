@@ -9,8 +9,6 @@
 #define MaxDepth 64
 #define Infinity 30000
 #define MateScore Infinity - MaxDepth
-#define IsMate(score) ((score) >= MateScore)
-#define MateDistance(score) (Infinity - (score))
 
 #define StartFEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 

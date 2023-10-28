@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include "Definitions.h"
 
@@ -10,12 +9,6 @@ U64 WhitePassedMask[64];
 U64 BlackPassedMask[64];
 U64 IsolatedMask[8];
 U64 StackedMask[64];
-U64 WhiteClosePawnShield[64]; // pawn shield in front of king
-U64 WhiteFarPawnShield[64]; // pawn shield two squares in front of king
-U64 BlackClosePawnShield[64];
-U64 BlackFarPawnShield[64];
-/*U64 WhitePawnStorm[8][64]; // indexed by distance (rank) and square
-U64 BlackPawnStorm[8][64];*/
 
 const int IsolatedPawnPenalty = 10;
 const int StackedPawnPenalty = 5;
@@ -33,8 +26,6 @@ const int KingSidePawnBonus = 20;
 
 const int WeakKingNoCastlingPenalty = 30;
 const int KingAttackWeight = 2;
-const int ClosePawnShieldBonus = 10;
-const int FarPawnShieldBonus = 3;
 
 const int PassedPawnValue[8] = { 0, 20, 30, 40, 55, 75, 100, 0 };
 
@@ -47,7 +38,6 @@ const int MobilityEgValue[12] = { 0, 1, 2, 3, 1, 0, 0, 1, 2, 3, 1, 0 };
 // Piece tables taken from https://www.chessprogramming.org/Simplified_Evaluation_Function
 // (with some small changes)
 // King tables made by me
-// Values have been roughly halved for each square to compensate for mobility evaluation (excepet pawns and king)
 
 const int PawnMgTable[64] = {
 	  0,   0,   0,   0,   0,   0,   0,   0,
@@ -71,7 +61,7 @@ const int PawnEgTable[64] = {
 	  0,   0,   0,   0,   0,   0,   0,   0
 };
 
-/*const int KnightTable[64] = {
+const int KnightTable[64] = {
 	-40, -30, -20, -20, -20, -20, -30, -40,
 	-30, -20,   0,   0,   0,   0, -20, -30,
 	-20,   0,  10,  15,  15,  10,   0, -20,
@@ -80,20 +70,9 @@ const int PawnEgTable[64] = {
 	-20,   5,  10,  15,  15,  10,   5, -20,
 	-30, -20,   0,   5,   5,   0, -20, -30,
 	-40, -30, -20, -20, -20, -20, -35, -40
-};*/
-
-const int KnightTable[64] = {
-	-20, -15, -10, -10, -10, -10, -15, -20,
-	-15, -10,   0,   0,   0,   0, -10, -15,
-	-10,   0,   3,   8,   8,   3,   0, -10,
-	-10,   3,   8,  10,  10,   8,   3, -10,
-	-10,   0,   8,  10,  10,   8,   0, -10,
-	-10,   3,   5,   8,   8,   5,   3, -10,
-	-15, -10,   0,   3,   3,   0, -10, -15,
-	-20, -15, -10, -10, -10, -10, -18, -20
 };
 
-/*const int BishopTable[64] = {
+const int BishopTable[64] = {
 	-20, -10, -10, -10, -10, -10, -10, -20,
 	-10,   0,   0,   0,   0,   0,   0, -10,
 	-10,   0,   5,  10,  10,   5,   0, -10,
@@ -102,20 +81,9 @@ const int KnightTable[64] = {
 	-10,  10,  10,  10,  10,  10,  10, -10,
 	-10,   5,   0,   0,   0,   0,   5, -10,
 	-20, -10, -10, -10, -10, -10, -10, -20
-};*/
-
-const int BishopTable[64] = {
-	-10,  -5,  -5,  -5,  -5,  -5,  -5, -10,
-	 -5,   0,   0,   0,   0,   0,   0,  -5,
-	 -5,   0,   3,   5,   5,   3,   0,  -5,
-	 -5,   3,   3,   5,   5,   3,   3,  -5,
-	 -5,   0,   5,   5,   5,   5,   0,  -5,
-	 -5,   5,   5,   5,   5,   5,   5,  -5,
-	 -5,   3,   0,   0,   0,   0,   3,  -5,
-	-10,  -5,  -5,  -5, - 5,  -5,  -5, -10
 };
 
-/*const int RookTable[64] = {
+const int RookTable[64] = {
 	  0,   0,   0,   5,   5,   0,   0,   0,
 	  5,  15,  15,  15,  15,  15,  15,   5,
 	 -5,   0,   0,   5,   5,   0,   0,  -5,
@@ -124,20 +92,9 @@ const int BishopTable[64] = {
 	 -5,   0,   0,   5,   5,   0,   0,  -5,
 	 -5,   0,   0,   5,   5,   0,   0,  -5,
 	  0,   0,   5,  10,  10,   5,   0,  0
-};*/
-
-const int RookTable[64] = {
-	  0,   0,   0,   3,   3,   0,   0,   0,
-	  3,   8,   8,   8,   8,   8,   8,   3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	  0,   0,   2,   5,   5,   3,   0,  0
 };
 
-/*const int QueenTable[64] = {
+const int QueenTable[64] = {
 	-20, -10, -10,  -5,  -5, -10, -10, -20,
 	-10,   0,   0,   0,   0,   0,   0, -10,
 	-10,   0,   5,   5,   5,   5,   0, -10,
@@ -146,17 +103,6 @@ const int RookTable[64] = {
 	-10,   5,   5,   5,   5,   5,   0, -10,
 	-10,   0,   5,   0,   0,   0,   0, -10,
 	-20, -10, -10,  -5,  -5, -10, -10, -20
-};*/
-
-const int QueenTable[64] = {
-	 -5,  -5,  -5,  -3,  -3,  -5,  -5, -10,
-	 -5,   0,   0,   0,   0,   0,   0,  -5,
-	 -5,   0,   3,   3,   3,   3,   0,  -5,
-	 -3,   0,   3,   3,   3,   3,   0,  -3,
-	  0,   0,   3,   3,   3,   3,   0,  -3,
-	 -5,   3,   3,   3,   3,   3,   0,  -5,
-	 -5,   0,   3,   0,   0,   0,   0,  -5,
-	-10,  -5,  -5,  -3,  -3,  -5,  -5, -10
 };
 
 const int KingMgTable[64] = {
@@ -216,95 +162,64 @@ int MgTables[12][64];
 int EgTables[12][64];
 
 void InitBitMasks() {
-	U64 File_A = 0x0101010101010101ULL;
-	U64 Rank_1 = 0x00000000000000FFULL;
-
 	for (int i = 0; i < 8; i++) {
-		FileMasks[i] = File_A << i;
-		RankMasks[i] = Rank_1 << i * 8;
+		FileMasks[i] = 0ULL;
+		RankMasks[i] = 0ULL;
 		IsolatedMask[i] = 0ULL;
-
-		printf("Rank %d\n");
-		PrintBitboard(RankMasks[i]);
 	}
 
 	for (int rank = Rank8; rank >= Rank1; rank--) {
 		for (int file = FileA; file <= FileH; file++) {
 			int square = GetSquare(file, rank);
 
-			StackedMask[square] = FileMasks[file];
-			ClearBit(StackedMask[square], square);
+			SetBit(FileMasks[file], square);
+			SetBit(RankMasks[rank], square);
 
-			WhitePassedMask[square] = 0ULL;
-			BlackPassedMask[square] = 0ULL;
-
-			int _rank = rank;
-
-			while (_rank <= Rank7) {
-				WhitePassedMask[square] |= RankMasks[++_rank];
-			}
-
-			_rank = rank;
-
-			while (_rank >= Rank2) {
-				BlackPassedMask[square] |= RankMasks[--_rank];
-			}
-
-			U64 WhiteFilesMask = FileMasks[file];
-			U64 BlackFilesMask = FileMasks[file];
-
-			if (file > FileA) {
-				WhiteFilesMask |= FileMasks[file - 1];
-				BlackFilesMask |= FileMasks[file - 1];
-
-				IsolatedMask[file] |= FileMasks[file - 1];
-			}
-
-			if (file < FileH) {
-				WhiteFilesMask |= FileMasks[file + 1];
-				BlackFilesMask |= FileMasks[file + 1];
-
-				IsolatedMask[file] |= FileMasks[file + 1];
-			}
-
-			WhitePassedMask[square] &= WhiteFilesMask;
-			BlackPassedMask[square] &= BlackFilesMask;
-
-			WhiteClosePawnShield[square] |= PawnCaptures[White][square];
-			BlackClosePawnShield[square] |= PawnCaptures[Black][square];
-
-			if (rank < Rank8) {
-				SetBit(WhiteClosePawnShield[square], square + 8);
-
-				if (rank < Rank7) {
-					SetBit(WhiteFarPawnShield[square], square + 16);
-
-					if (file > FileA) {
-						SetBit(WhiteFarPawnShield[square], square + 15);
-					}
-
-					if (file < FileH) {
-						SetBit(WhiteFarPawnShield[square], square + 17);
-					}
-				}
-			}
-
-			if (rank > Rank1) {
-				SetBit(BlackClosePawnShield[square], square - 8);
-
-				if (rank > Rank2) {
-					SetBit(BlackFarPawnShield[square], square - 16);
-				}
-
-				if (file > FileA) {
-					SetBit(BlackFarPawnShield[square], square - 17);
-				}
-
-				if (file < FileH) {
-					SetBit(BlackFarPawnShield[square], square - 15);
-				}
-			}
+			StackedMask[square] = 0ULL;
 		}
+	}
+
+	for (int square = 0; square < 64; square++) {
+		WhitePassedMask[square] = 0ULL;
+		BlackPassedMask[square] = 0ULL;
+
+		int rank = GetRank(square);
+		int file = GetFile(square);
+
+		while (rank <= Rank7) {
+			rank++;
+			WhitePassedMask[square] |= RankMasks[rank];
+		}
+
+		rank = GetRank(square);
+
+		while (rank >= Rank2) {
+			rank--;
+			BlackPassedMask[square] |= RankMasks[rank];
+		}
+
+		StackedMask[square] |= FileMasks[file];
+		ClearBit(StackedMask[square], square);
+
+		U64 WhiteFilesMask = FileMasks[file];
+		U64 BlackFilesMask = FileMasks[file];
+
+		if (file > FileA) {
+			WhiteFilesMask |= FileMasks[file - 1];
+			BlackFilesMask |= FileMasks[file - 1];
+
+			IsolatedMask[file] |= FileMasks[file - 1];
+		}
+
+		if (file < FileH) {
+			WhiteFilesMask |= FileMasks[file + 1];
+			BlackFilesMask |= FileMasks[file + 1];
+
+			IsolatedMask[file] |= FileMasks[file + 1];
+		}
+
+		WhitePassedMask[square] &= WhiteFilesMask;
+		BlackPassedMask[square] &= BlackFilesMask;
 	}
 }
 
@@ -381,16 +296,12 @@ int Evaluate(const Position* position) {
 
 	int gamePhase = 0;
 
-	int pawns = 0;
-
 	int piece = wP;
 	U64 bitboard = position->bitboards[piece];
 
 	while (bitboard) {
 		int square = GLS1BI(bitboard);
 		ClearBit(bitboard, square);
-
-		pawns++;
 
 		gamePhase += GamePhaseIncrement[piece];
 
@@ -416,8 +327,6 @@ int Evaluate(const Position* position) {
 	while (bitboard) {
 		int square = GLS1BI(bitboard);
 		ClearBit(bitboard, square);
-
-		pawns++;
 
 		gamePhase += GamePhaseIncrement[piece];
 
@@ -463,7 +372,7 @@ int Evaluate(const Position* position) {
 		ClearBit(bitboard, square);
 
 		gamePhase += GamePhaseIncrement[piece];
-		
+
 		mgScore -= MgTables[piece][square];
 		egScore -= EgTables[piece][square];
 
@@ -629,9 +538,7 @@ int Evaluate(const Position* position) {
 			}
 		}
 
-		mgScore -= KingAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[Both]);
-		mgScore += ClosePawnShieldBonus * CountBits(WhiteClosePawnShield[square] & position->bitboards[wP]);
-		mgScore += FarPawnShieldBonus * CountBits(WhiteFarPawnShield[square] & position->bitboards[wP]);
+		score -= KingAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]));
 	}
 
 	piece = bK;
@@ -654,12 +561,10 @@ int Evaluate(const Position* position) {
 			}
 		}
 
-		mgScore += KingAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[Both]);
-		mgScore -= ClosePawnShieldBonus * CountBits(BlackClosePawnShield[square] & position->bitboards[bP]);
-		mgScore -= FarPawnShieldBonus * CountBits(BlackFarPawnShield[square] & position->bitboards[bP]);
+		score += KingAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]));
 	}
 
-	if (pawns == 0) {
+	if (CountBits(position->bitboards[wP]) == 0 && CountBits(position->bitboards[bP]) == 0) {
 		int wKingSquare = GLS1BI(position->bitboards[wK]);
 		int bKingSquare = GLS1BI(position->bitboards[bK]);
 

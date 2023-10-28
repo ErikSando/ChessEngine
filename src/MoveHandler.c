@@ -95,7 +95,8 @@ int MakeMove(int move, Position* position) {
 		if (side == White) {
 			ClearBit(position->bitboards[bP], toSquare - 8);
 			ClearBit(position->occupancy[Black], toSquare - 8);
-		} else {
+		}
+		else {
 			ClearBit(position->bitboards[wP], toSquare + 8);
 			ClearBit(position->occupancy[White], toSquare + 8);
 		}

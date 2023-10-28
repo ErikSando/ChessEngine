@@ -34,16 +34,22 @@ int GetHashEntry(int* pvMove, int alpha, int beta, int depth, Position* position
 		*pvMove = entry->move;
 
 		if (entry->depth >= depth) {
+			int score = entry->score;
+
 			switch (entry->flag) {
 				case ExactFlag:
-					return entry->score;
+					// if (score >= MateScore) ??? if (score <= -MateScore) ???
+					if (score > MateScore) score -= position->ply;
+					else if (score < -MateScore) score += position->ply;
+
+					return score;
 
 				case AlphaFlag:
-					if (entry->score <= alpha) return alpha;
+					if (score <= alpha) return alpha;
 					break;
 
 				case BetaFlag:
-					if (entry->score >= beta) return beta;
+					if (score >= beta) return beta;
 					break;
 			}
 		}
@@ -55,6 +61,9 @@ int GetHashEntry(int* pvMove, int alpha, int beta, int depth, Position* position
 void StoreHashEntry(int move, int score, int depth, int flag, Position* position) {
 	int index = position->positionKey % position->hashTable->count;
 	HashEntry* entry = &position->hashTable->entries[index];
+
+	if (score > MateScore) score += position->ply;
+	else if (score < -MateScore) score -= position->ply;
 
 	entry->positionKey = position->positionKey;
 	entry->move = move;
