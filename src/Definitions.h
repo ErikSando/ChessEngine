@@ -2,7 +2,7 @@
 #define Definitions_h
 
 #define NAME "Erik Engine"
-#define VERSION "1.0"
+#define VERSION "1.2"
 
 #define MaxGameMoves 2048
 #define MaxPositionMoves 256
@@ -40,7 +40,8 @@ typedef unsigned long long U64;
 
 #define SetBit(bitboard, square) ((bitboard) |= (1ULL << (square)))
 #define GetBit(bitboard, square) ((bitboard) & (1ULL << (square)))
-#define ClearBit(bitboard, square) (GetBit((bitboard), (square)) ? (bitboard) ^= (1ULL << (square)) : 0)
+//#define ClearBit(bitboard, square) (GetBit((bitboard), (square)) ? (bitboard) ^= (1ULL << (square)) : 0)
+#define ClearBit(bitboard, square) ((bitboard) ^= (1ULL << (square))) // assumes there is already a bit set
 #define CountBits(bitboard) __builtin_popcountll((bitboard))
 //#define GLS1BI(bitboard) ((bitboard) ? CountBits(((bitboard) & -(bitboard)) - 1) : -1)
 #define GLS1BI(bitboard) (CountBits(((bitboard) & -(bitboard)) - 1)) // get least significant 1st bit index
@@ -68,6 +69,7 @@ typedef unsigned long long U64;
 #define IsRook(piece) (PieceRook[(piece)])
 #define IsQueen(piece) (PieceQueen[(piece)])
 #define IsKing(piece) (PieceKing[(piece)])
+#define IsBigPiece(piece) (PieceBig[(piece)])
 
 typedef struct {
 	int move;
@@ -91,11 +93,13 @@ typedef struct {
 	int score;
 	int depth;
 	int flag;
+	int age;
 } HashEntry;
 
 typedef struct {
 	HashEntry* entries;
 	int count;
+	int age;
 } HashTable;
 
 typedef struct {
@@ -106,19 +110,17 @@ typedef struct {
 	int depth;
 	int stopped;
 	int bestMove;
-	long nodes;
+	U64 nodes;
 	int quit;
 } SearchInfo;
 
 typedef struct {
-	U64 bitboards[12];
-	U64 occupancy[3];
 	U64 positionKey;
-	int side;
+	int move;
 	int enPassant;
 	int castling;
 	int fiftyMoveRule;
-} PositionInfo;
+} UndoInfo;
 
 typedef struct {
 	U64 bitboards[12];
@@ -128,13 +130,14 @@ typedef struct {
 	int enPassant;
 	int castling;
 	int fiftyMoveRule;
+	int bigPieces[2];
 	int ply;
 	int historyPly;
-	PositionInfo history[MaxGameMoves];
 	int killerMoves[2][MaxDepth];
 	int historyMoves[12][64];
+	int pvList[MaxDepth];
 	HashTable hashTable[1];
-	int pvArray[MaxDepth];
+	UndoInfo history[MaxGameMoves];
 } Position;
 
 extern int SquareFiles[64];
@@ -149,6 +152,7 @@ extern int PieceBishop[12];
 extern int PieceRook[12];
 extern int PieceQueen[12];
 extern int PieceKing[12];
+extern int PieceBig[12];
 extern int PieceColour[12];
 
 extern U64 PieceKeys[12][64];

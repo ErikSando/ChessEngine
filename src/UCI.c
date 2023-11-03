@@ -115,8 +115,8 @@ void UCILoop() {
 
 	char input[InputBuffer];
 
-	printf("id name %s\n", NAME);
-	printf("id author Erik\n\n");
+	//printf("id name %s\n", NAME);
+	//printf("id author Erik\n\n");
 
 	while (True) {
 		memset(input, 0, sizeof(input));
@@ -131,6 +131,10 @@ void UCILoop() {
 		}
 		else if (!strncmp(input, "uci", 3)) {
 			printf("uciok\n");
+		}
+		else if (!strncmp(input, "info", 4)) {
+			printf("id name %s v%s\n", NAME, VERSION);
+			printf("id author Erik\n\n");
 		}
 		else if (!strncmp(input, "isready", 7)) {
 			printf("readyok\n");
@@ -153,9 +157,6 @@ void UCILoop() {
 		else if (!strncmp(input, "perft", 5)) {
 			int depth = atoi(input + 5);
 			PerftTest(depth, position);
-		}
-		else if (!strncmp(input, "rep", 3)) {
-			printf("%s\n", IsRepetition(position) ? "is repetition" : "is not repetition");
 		}
 		else if (!strncmp(input, "take", 4)) {
 			if (position->ply > 0) {

@@ -34,18 +34,15 @@ int MakeMove(int move, Position* position) {
 	int side = position->side;
 	int enemy = side ^ 1;
 
-	memcpy(position->history[position->historyPly].bitboards, position->bitboards, sizeof(position->bitboards));
-	memcpy(position->history[position->historyPly].occupancy, position->occupancy, sizeof(position->occupancy));
-
 	position->history[position->historyPly].positionKey = position->positionKey;
-	position->history[position->historyPly].side = position->side;
 	position->history[position->historyPly].enPassant = position->enPassant;
 	position->history[position->historyPly].castling = position->castling;
 	position->history[position->historyPly].fiftyMoveRule = position->fiftyMoveRule;
+	position->history[position->historyPly].move = move;
 
 	position->ply++;
 	position->historyPly++;
-	
+
 	ClearBit(position->bitboards[piece], fromSquare);
 	ClearBit(position->occupancy[side], fromSquare);
 	SetBit(position->occupancy[side], toSquare);
@@ -90,6 +87,8 @@ int MakeMove(int move, Position* position) {
 		ClearBit(position->bitboards[captured], toSquare);
 		ClearBit(position->occupancy[enemy], toSquare);
 		HashPiece(captured, toSquare);
+
+		if (IsBigPiece(captured)) position->bigPieces[enemy]--;
 	}
 	else if (IsEnPassant(move)) {
 		if (side == White) {
@@ -135,15 +134,15 @@ int MakeMove(int move, Position* position) {
 
 	position->occupancy[Both] = position->occupancy[White] | position->occupancy[Black];
 
+	position->side ^= 1;
+	HashSide;
+
 	int kingSquare = GLS1BI(position->bitboards[side == White ? wK : bK]);
 
 	if (SquareAttacked(kingSquare, enemy, position)) {
 		TakeMove(position);
 		return False;
 	}
-
-	position->side ^= 1;
-	HashSide;
 
 	return True;
 }
@@ -152,22 +151,84 @@ void TakeMove(Position* position) {
 	position->ply--;
 	position->historyPly--;
 
-	memcpy(position->bitboards, position->history[position->historyPly].bitboards, sizeof(position->history[position->historyPly].bitboards));
-	memcpy(position->occupancy, position->history[position->historyPly].occupancy, sizeof(position->history[position->historyPly].occupancy));
-
 	position->positionKey = position->history[position->historyPly].positionKey;
-	position->side = position->history[position->historyPly].side;
 	position->enPassant = position->history[position->historyPly].enPassant;
 	position->castling = position->history[position->historyPly].castling;
 	position->fiftyMoveRule = position->history[position->historyPly].fiftyMoveRule;
+
+	position->side ^= 1;
+
+	int move = position->history[position->historyPly].move;
+
+	int fromSquare = FromSquare(move);
+	int toSquare = ToSquare(move);
+	int piece = MovedPiece(move);
+	int captured = CapturedPiece(move);
+	int promoted = PromotedPiece(move);
+	int side = position->side;
+	int enemy = side ^ 1;
+
+	ClearBit(position->occupancy[side], toSquare);
+
+	if (promoted) ClearBit(position->bitboards[promoted], toSquare);
+	else ClearBit(position->bitboards[piece], toSquare);
+
+	SetBit(position->bitboards[piece], fromSquare);
+	SetBit(position->occupancy[side], fromSquare);
+	
+	if (IsCapture(move)) {
+		SetBit(position->bitboards[captured], toSquare);
+		SetBit(position->occupancy[enemy], toSquare);
+
+		if (IsBigPiece(captured)) position->bigPieces[enemy]++;
+	}
+	else if (IsEnPassant(move)) {
+		if (side == White) {
+			SetBit(position->bitboards[bP], toSquare - 8);
+			SetBit(position->occupancy[Black], toSquare - 8);
+		}
+		else {
+			SetBit(position->bitboards[wP], toSquare + 8);
+			SetBit(position->occupancy[White], toSquare + 8);
+		}
+	}
+	else if (IsCastling(move)) {
+		switch (toSquare) {
+			case G1:
+				ClearBit(position->bitboards[wR], F1);
+				ClearBit(position->occupancy[White], F1);
+				SetBit(position->bitboards[wR], H1);
+				SetBit(position->occupancy[White], H1);
+				break;
+
+			case C1:
+				ClearBit(position->bitboards[wR], D1);
+				ClearBit(position->occupancy[White], D1);
+				SetBit(position->bitboards[wR], A1);
+				SetBit(position->occupancy[White], A1);
+				break;
+
+			case G8:
+				ClearBit(position->bitboards[bR], F8);
+				ClearBit(position->occupancy[Black], F8);
+				SetBit(position->bitboards[bR], H8);
+				SetBit(position->occupancy[Black], H8);
+				break;
+
+			case C8:
+				ClearBit(position->bitboards[bR], D8);
+				ClearBit(position->occupancy[Black], D8);
+				SetBit(position->bitboards[bR], A8);
+				SetBit(position->occupancy[Black], A8);
+				break;
+		}
+	}
+
+	position->occupancy[Both] = position->occupancy[White] | position->occupancy[Black];
 }
 
 void MakeNullMove(Position* position) {
-	memcpy(position->history[position->historyPly].bitboards, position->bitboards, sizeof(position->bitboards));
-	memcpy(position->history[position->historyPly].occupancy, position->occupancy, sizeof(position->occupancy));
-
 	position->history[position->historyPly].positionKey = position->positionKey;
-	position->history[position->historyPly].side = position->side;
 	position->history[position->historyPly].enPassant = position->enPassant;
 	position->history[position->historyPly].castling = position->castling;
 	position->history[position->historyPly].fiftyMoveRule = position->fiftyMoveRule;
@@ -188,12 +249,10 @@ void TakeNullMove(Position* position) {
 	position->ply--;
 	position->historyPly--;
 
-	memcpy(position->bitboards, position->history[position->historyPly].bitboards, sizeof(position->history[position->historyPly].bitboards));
-	memcpy(position->occupancy, position->history[position->historyPly].occupancy, sizeof(position->history[position->historyPly].occupancy));
-
 	position->positionKey = position->history[position->historyPly].positionKey;
-	position->side = position->history[position->historyPly].side;
 	position->enPassant = position->history[position->historyPly].enPassant;
 	position->castling = position->history[position->historyPly].castling;
 	position->fiftyMoveRule = position->history[position->historyPly].fiftyMoveRule;
+
+	position->side ^= 1;
 }

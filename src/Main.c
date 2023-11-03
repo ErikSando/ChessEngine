@@ -21,8 +21,8 @@ void PrintAttackedSquares(int side, Position* position) {
 int main() {
     Init();
 
-    printf("Welcome to %s version %s\n\n", NAME, VERSION);
-    
+    printf("%s v%s\n\n", NAME, VERSION);
+
     UCILoop();
 
     return 0;

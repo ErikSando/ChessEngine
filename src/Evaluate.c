@@ -16,9 +16,12 @@ U64 BlackClosePawnShield[64];
 U64 BlackFarPawnShield[64];
 /*U64 WhitePawnStorm[8][64]; // indexed by distance (rank) and square
 U64 BlackPawnStorm[8][64];*/
+U64 CenterMask = 0x0000001818000000ULL;
+U64 ExtendedCenterMask = 0x00003C24243C0000ULL;
 
 const int IsolatedPawnPenalty = 10;
 const int StackedPawnPenalty = 5;
+const int DefendedPawnBonus = 8;
 
 const int RookOpenFileBonus = 12;
 const int RookSemiOpenFileBonus = 8;
@@ -26,25 +29,26 @@ const int RookSemiOpenFileBonus = 8;
 const int QueenOpenFileBonus = 8;
 const int QueenSemiOpenFileBonus = 5;
 
-const int BishopPairBonus = 30;
+const int BishopPairBonus = 25;
 
-const int KingCenterPawnBonus = 25;
-const int KingSidePawnBonus = 20;
-
-const int WeakKingNoCastlingPenalty = 30;
-const int KingAttackWeight = 2;
+const int KingVirtualAttackWeight = 2;
 const int ClosePawnShieldBonus = 10;
 const int FarPawnShieldBonus = 3;
+const int KingOpenFilePenalty = 15;
+
+// setting these to zero drops the nodes searched significantly
+const int CenterControlBonus = 5; // low because it will be added to both middle game score and full game score to make it less valuable in the endgame
+const int ExtendedCenterControlBonus = 3;
 
 const int PassedPawnValue[8] = { 0, 20, 30, 40, 55, 75, 100, 0 };
 
 const int PieceMgValue[6] = { 100, 320, 330, 500, 950, 0 };
 const int PieceEgValue[6] = { 110, 290, 330, 550, 900, 0 };
 
-const int MobilityMgValue[12] = { 0, 3, 3, 1, 1, 0, 0, 3, 3, 1, 1, 0 }; // queen is low because it usually has many squares it can go to
-const int MobilityEgValue[12] = { 0, 1, 2, 3, 1, 0, 0, 1, 2, 3, 1, 0 };
+const int MobilityMgValue[12] = { 0, 4, 3, 1, 1, 0, 0, 4, 3, 1, 1, 0 };
+const int MobilityEgValue[12] = { 0, 2, 3, 3, 1, 0, 0, 2, 3, 3, 1, 0 };
 
-// Piece tables taken from https://www.chessprogramming.org/Simplified_Evaluation_Function
+// Piece square tables based on https://www.chessprogramming.org/Simplified_Evaluation_Function
 // (with some small changes)
 // King tables made by me
 // Values have been roughly halved for each square to compensate for mobility evaluation (excepet pawns and king)
@@ -71,17 +75,6 @@ const int PawnEgTable[64] = {
 	  0,   0,   0,   0,   0,   0,   0,   0
 };
 
-/*const int KnightTable[64] = {
-	-40, -30, -20, -20, -20, -20, -30, -40,
-	-30, -20,   0,   0,   0,   0, -20, -30,
-	-20,   0,  10,  15,  15,  10,   0, -20,
-	-20,   5,  15,  20,  20,  15,   5, -20,
-	-20,   0,  15,  20,  20,  15,   0, -20,
-	-20,   5,  10,  15,  15,  10,   5, -20,
-	-30, -20,   0,   5,   5,   0, -20, -30,
-	-40, -30, -20, -20, -20, -20, -35, -40
-};*/
-
 const int KnightTable[64] = {
 	-20, -15, -10, -10, -10, -10, -15, -20,
 	-15, -10,   0,   0,   0,   0, -10, -15,
@@ -92,17 +85,6 @@ const int KnightTable[64] = {
 	-15, -10,   0,   3,   3,   0, -10, -15,
 	-20, -15, -10, -10, -10, -10, -18, -20
 };
-
-/*const int BishopTable[64] = {
-	-20, -10, -10, -10, -10, -10, -10, -20,
-	-10,   0,   0,   0,   0,   0,   0, -10,
-	-10,   0,   5,  10,  10,   5,   0, -10,
-	-10,   5,   5,  10,  10,   5,   5, -10,
-	-10,   0,  10,  10,  10,  10,   0, -10,
-	-10,  10,  10,  10,  10,  10,  10, -10,
-	-10,   5,   0,   0,   0,   0,   5, -10,
-	-20, -10, -10, -10, -10, -10, -10, -20
-};*/
 
 const int BishopTable[64] = {
 	-10,  -5,  -5,  -5,  -5,  -5,  -5, -10,
@@ -115,38 +97,16 @@ const int BishopTable[64] = {
 	-10,  -5,  -5,  -5, - 5,  -5,  -5, -10
 };
 
-/*const int RookTable[64] = {
-	  0,   0,   0,   5,   5,   0,   0,   0,
-	  5,  15,  15,  15,  15,  15,  15,   5,
-	 -5,   0,   0,   5,   5,   0,   0,  -5,
-	 -5,   0,   0,   5,   5,   0,   0,  -5,
-	 -5,   0,   0,   5,   5,   0,   0,  -5,
-	 -5,   0,   0,   5,   5,   0,   0,  -5,
-	 -5,   0,   0,   5,   5,   0,   0,  -5,
-	  0,   0,   5,  10,  10,   5,   0,  0
-};*/
-
 const int RookTable[64] = {
-	  0,   0,   0,   3,   3,   0,   0,   0,
-	  3,   8,   8,   8,   8,   8,   8,   3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	 -3,   0,   0,   3,   3,   0,   0,  -3,
-	  0,   0,   2,   5,   5,   3,   0,  0
+	  0,   0,   0,   5,   5,   0,   0,   0,
+	  5,  10,  10,  10,  10,  10,  10,   5,
+	 -4,   0,   0,   4,   4,   0,   0,  -4,
+	 -4,   0,   0,   4,   4,   0,   0,  -4,
+	 -4,   0,   0,   4,   4,   0,   0,  -4,
+	 -4,   0,   0,   4,   4,   0,   0,  -4,
+	 -4,   0,   0,   4,   4,   0,   0,  -4,
+	  0,   0,   3,   6,   6,   4,   0,   0
 };
-
-/*const int QueenTable[64] = {
-	-20, -10, -10,  -5,  -5, -10, -10, -20,
-	-10,   0,   0,   0,   0,   0,   0, -10,
-	-10,   0,   5,   5,   5,   5,   0, -10,
-	 -5,   0,   5,   5,   5,   5,   0,  -5,
-	  0,   0,   5,   5,   5,   5,   0,  -5,
-	-10,   5,   5,   5,   5,   5,   0, -10,
-	-10,   0,   5,   0,   0,   0,   0, -10,
-	-20, -10, -10,  -5,  -5, -10, -10, -20
-};*/
 
 const int QueenTable[64] = {
 	 -5,  -5,  -5,  -3,  -3,  -5,  -5, -10,
@@ -166,8 +126,8 @@ const int KingMgTable[64] = {
 	-60, -60, -60, -60, -60, -60, -60, -60,
 	-60, -60, -60, -60, -60, -60, -60, -60,
 	-60, -60, -60, -60, -60, -60, -60, -60,
-	-60, -60, -60, -40, -40, -40, -60, -60,
-	 20,  40,  30, -30,   0, -30,  40,  20,
+	-40, -40, -40, -40, -40, -40, -40, -40,
+	 20,  40,  30, -30,   0, -30,  40,  20
 };
 
 const int KingEgTable[64] = {
@@ -223,9 +183,6 @@ void InitBitMasks() {
 		FileMasks[i] = File_A << i;
 		RankMasks[i] = Rank_1 << i * 8;
 		IsolatedMask[i] = 0ULL;
-
-		printf("Rank %d\n");
-		PrintBitboard(RankMasks[i]);
 	}
 
 	for (int rank = Rank8; rank >= Rank1; rank--) {
@@ -279,13 +236,8 @@ void InitBitMasks() {
 				if (rank < Rank7) {
 					SetBit(WhiteFarPawnShield[square], square + 16);
 
-					if (file > FileA) {
-						SetBit(WhiteFarPawnShield[square], square + 15);
-					}
-
-					if (file < FileH) {
-						SetBit(WhiteFarPawnShield[square], square + 17);
-					}
+					if (file > FileA) SetBit(WhiteFarPawnShield[square], square + 15);
+					if (file < FileH) SetBit(WhiteFarPawnShield[square], square + 17);
 				}
 			}
 
@@ -294,14 +246,9 @@ void InitBitMasks() {
 
 				if (rank > Rank2) {
 					SetBit(BlackFarPawnShield[square], square - 16);
-				}
-
-				if (file > FileA) {
-					SetBit(BlackFarPawnShield[square], square - 17);
-				}
-
-				if (file < FileH) {
-					SetBit(BlackFarPawnShield[square], square - 15);
+				
+					if (file > FileA) SetBit(BlackFarPawnShield[square], square - 17);
+					if (file < FileH) SetBit(BlackFarPawnShield[square], square - 15);
 				}
 			}
 		}
@@ -360,16 +307,9 @@ static inline int MaterialDraw(const Position* position) {
 	return False;
 }
 
-static int ManhattanDistance(int square1, int square2) {
-	int file1 = GetFile(square1);
-	int file2 = GetFile(square2);
-	int rank1 = GetRank(square1);
-	int rank2 = GetRank(square2);
-
-	int fileDistance = abs(file2 - file1);
-	int rankDistance = abs(rank2 - rank1);
-
-	return fileDistance + rankDistance;
+static inline int ManhattanDistance(int square1, int square2) {
+	return abs(GetFile(square2) - GetFile(square1))
+		 + abs(GetRank(square2) - GetRank(square1));
 }
 
 int Evaluate(const Position* position) {
@@ -382,6 +322,7 @@ int Evaluate(const Position* position) {
 	int gamePhase = 0;
 
 	int pawns = 0;
+	int bishops[2] = { 0, 0 };
 
 	int piece = wP;
 	U64 bitboard = position->bitboards[piece];
@@ -397,17 +338,17 @@ int Evaluate(const Position* position) {
 		mgScore += MgTables[piece][square];
 		egScore += EgTables[piece][square];
 
-		if ((WhitePassedMask[square] & position->bitboards[bP]) == 0) {
-			score += PassedPawnValue[GetRank(square)];
-		}
+		//U64 captures = PawnCaptures[White][square];
+		//int centerControl = CountBits(CenterMask & captures);
+		//int extendedCenterControl = CountBits(ExtendedCenterMask & captures);
 
-		if ((IsolatedMask[GetFile(square)] & position->bitboards[wP]) == 0) {
-			score -= IsolatedPawnPenalty;
-		}
+		//score += centerControl * CenterControlBonus;
+		//score += extendedCenterControl * ExtendedCenterControlBonus;
 
-		if (StackedMask[square] & position->bitboards[wP]) {
-			score -= StackedPawnPenalty;
-		}
+		if ((WhitePassedMask[square] & position->bitboards[bP]) == 0) score += PassedPawnValue[GetRank(square)];
+		if ((IsolatedMask[GetFile(square)] & position->bitboards[wP]) == 0) score -= IsolatedPawnPenalty;
+		if (StackedMask[square] & position->bitboards[wP]) score -= StackedPawnPenalty;
+		if (PawnCaptures[Black][square] & position->bitboards[wP]) score += DefendedPawnBonus;
 	}
 
 	piece = bP;
@@ -424,17 +365,17 @@ int Evaluate(const Position* position) {
 		mgScore -= MgTables[piece][square];
 		egScore -= EgTables[piece][square];
 
-		if ((BlackPassedMask[square] & position->bitboards[wP]) == 0) {
-			score -= PassedPawnValue[7 - GetRank(square)];
-		}
+		//U64 captures = PawnCaptures[Black][square];
+		//int centerControl = CountBits(CenterMask & captures);
+		//int extendedCenterControl = CountBits(ExtendedCenterMask & captures);
 
-		if ((IsolatedMask[GetFile(square)] & position->bitboards[bP]) == 0) {
-			score += IsolatedPawnPenalty;
-		}
+		//score -= centerControl * CenterControlBonus;
+		//score -= extendedCenterControl * ExtendedCenterControlBonus;
 
-		if (StackedMask[square] & position->bitboards[bP]) {
-			score += StackedPawnPenalty;
-		}
+		if ((BlackPassedMask[square] & position->bitboards[wP]) == 0) score -= PassedPawnValue[7 - GetRank(square)];
+		if ((IsolatedMask[GetFile(square)] & position->bitboards[bP]) == 0) score += IsolatedPawnPenalty;
+		if (StackedMask[square] & position->bitboards[bP]) score += StackedPawnPenalty;
+		if (PawnCaptures[White][square] & position->bitboards[bP]) score -= DefendedPawnBonus;
 	}
 
 	piece = wN;
@@ -449,10 +390,18 @@ int Evaluate(const Position* position) {
 		mgScore += MgTables[piece][square];
 		egScore += EgTables[piece][square];
 
-		int mobility = CountBits(KnightAttacks[square] & ~position->occupancy[White]);
+		U64 attacks = KnightAttacks[square] & ~position->occupancy[White];
+		int mobility = CountBits(attacks);
+		//int centerControl = CountBits(attacks & CenterMask);
+		//int extendedCenterControl = CountBits(attacks & ExtendedCenterMask);
 
-		mgScore += MobilityMgValue[piece] * mobility;
-		egScore += MobilityEgValue[piece] * mobility;
+		mgScore += mobility * MobilityMgValue[piece];
+		egScore += mobility * MobilityEgValue[piece];
+
+		//mgScore += centerControl * CenterControlBonus;
+		//mgScore += extendedCenterControl * ExtendedCenterControlBonus;
+		//score += centerControl * CenterControlBonus;
+		//score += extendedCenterControl * ExtendedCenterControlBonus;
 	}
 
 	piece = bN;
@@ -467,10 +416,18 @@ int Evaluate(const Position* position) {
 		mgScore -= MgTables[piece][square];
 		egScore -= EgTables[piece][square];
 
-		int mobility = CountBits(KnightAttacks[square] & ~position->occupancy[Black]);
+		U64 attacks = KnightAttacks[square] & ~position->occupancy[Black];
+		int mobility = CountBits(attacks);
+		//int centerControl = CountBits(attacks & CenterMask);
+		//int extendedCenterControl = CountBits(attacks & ExtendedCenterMask);
 
-		mgScore -= MobilityMgValue[piece] * mobility;
-		egScore -= MobilityEgValue[piece] * mobility;
+		mgScore -= mobility * MobilityMgValue[piece];
+		egScore -= mobility * MobilityEgValue[piece];
+
+		//mgScore -= centerControl * CenterControlBonus;
+		//mgScore -= extendedCenterControl * ExtendedCenterControlBonus;
+		//score -= centerControl * CenterControlBonus;
+		//score -= extendedCenterControl * ExtendedCenterControlBonus;
 	}
 
 	piece = wB;
@@ -480,15 +437,25 @@ int Evaluate(const Position* position) {
 		int square = GLS1BI(bitboard);
 		ClearBit(bitboard, square);
 
+		bishops[White]++;
+
 		gamePhase += GamePhaseIncrement[piece];
 
 		mgScore += MgTables[piece][square];
 		egScore += EgTables[piece][square];
 
-		int mobility = CountBits(GetBishopAttacks(square, position->occupancy[Both]) & ~position->occupancy[White]);
+		U64 attacks = GetBishopAttacks(square, position->occupancy[Both]) & ~position->occupancy[White];
+		int mobility = CountBits(attacks);
+		//int centerControl = CountBits(attacks & CenterMask);
+		//int extendedCenterControl = CountBits(attacks & ExtendedCenterMask);
 
-		mgScore += MobilityMgValue[piece] * mobility;
-		egScore += MobilityEgValue[piece] * mobility;
+		mgScore += mobility * MobilityMgValue[piece];
+		egScore += mobility * MobilityEgValue[piece];
+
+		//mgScore += centerControl * CenterControlBonus;
+		//mgScore += extendedCenterControl * ExtendedCenterControlBonus;
+		//score += centerControl * CenterControlBonus;
+		//score += extendedCenterControl * ExtendedCenterControlBonus;
 	}
 
 	piece = bB;
@@ -498,15 +465,25 @@ int Evaluate(const Position* position) {
 		int square = GLS1BI(bitboard);
 		ClearBit(bitboard, square);
 
+		bishops[Black]++;
+
 		gamePhase += GamePhaseIncrement[piece];
 
 		mgScore -= MgTables[piece][square];
 		egScore -= EgTables[piece][square];
 
-		int mobility = CountBits(GetBishopAttacks(square, position->occupancy[Both]) & ~position->occupancy[Black]);
+		U64 attacks = GetBishopAttacks(square, position->occupancy[Both]) & ~position->occupancy[Black];
+		int mobility = CountBits(attacks);
+		//int centerControl = CountBits(attacks & CenterMask);
+		//int extendedCenterControl = CountBits(attacks & ExtendedCenterMask);
 
-		mgScore -= MobilityMgValue[piece] * mobility;
-		egScore -= MobilityEgValue[piece] * mobility;
+		mgScore -= mobility * MobilityMgValue[piece];
+		egScore -= mobility * MobilityEgValue[piece];
+
+		//mgScore -= centerControl * CenterControlBonus;
+		//mgScore -= extendedCenterControl * ExtendedCenterControlBonus;
+		//score -= centerControl * CenterControlBonus;
+		//score -= extendedCenterControl * ExtendedCenterControlBonus;
 	}
 
 	piece = wR;
@@ -528,10 +505,11 @@ int Evaluate(const Position* position) {
 			score += RookSemiOpenFileBonus;
 		}
 
-		int mobility = CountBits(GetRookAttacks(square, position->occupancy[Both]) & ~position->occupancy[White]);
+		U64 attacks = GetRookAttacks(square, position->occupancy[Both]) & ~position->occupancy[White];
+		int mobility = CountBits(attacks);
 
-		mgScore += MobilityMgValue[piece] * mobility;
-		egScore += MobilityEgValue[piece] * mobility;
+		mgScore += mobility * MobilityMgValue[piece];
+		egScore += mobility * MobilityEgValue[piece];
 	}
 
 	piece = bR;
@@ -553,10 +531,11 @@ int Evaluate(const Position* position) {
 			score -= RookSemiOpenFileBonus;
 		}
 
-		int mobility = CountBits(GetRookAttacks(square, position->occupancy[Both]) & ~position->occupancy[Black]);
+		U64 attacks = GetRookAttacks(square, position->occupancy[Both]) & ~position->occupancy[Black];
+		int mobility = CountBits(attacks);
 
-		mgScore -= MobilityMgValue[piece] * mobility;
-		egScore -= MobilityEgValue[piece] * mobility;
+		mgScore -= mobility * MobilityMgValue[piece];
+		egScore -= mobility * MobilityEgValue[piece];
 	}
 
 	piece = wQ;
@@ -580,8 +559,8 @@ int Evaluate(const Position* position) {
 
 		int mobility = CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[White]);
 
-		mgScore += MobilityMgValue[piece] * mobility;
-		egScore += MobilityEgValue[piece] * mobility;
+		mgScore += mobility * MobilityMgValue[piece];
+		egScore += mobility * MobilityEgValue[piece];
 	}
 
 	piece = bQ;
@@ -605,9 +584,12 @@ int Evaluate(const Position* position) {
 
 		int mobility = CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[Black]);
 
-		mgScore -= MobilityMgValue[piece] * mobility;
-		egScore -= MobilityEgValue[piece] * mobility;
+		mgScore -= mobility * MobilityMgValue[piece];
+		egScore -= mobility * MobilityEgValue[piece];
 	}
+
+	int wKingSquare;
+	int bKingSquare;
 
 	piece = wK;
 	bitboard = position->bitboards[piece];
@@ -616,22 +598,17 @@ int Evaluate(const Position* position) {
 		int square = GLS1BI(bitboard);
 		ClearBit(bitboard, square);
 
+		wKingSquare = square;
+
 		mgScore += MgTables[piece][square];
 		egScore += EgTables[piece][square];
 
-		if (mgScore <= 0) {
-			if ((position->castling & WKC) == 0) {
-				mgScore -= WeakKingNoCastlingPenalty;
-			}
-
-			if ((position->castling & WQC) == 0) {
-				mgScore -= WeakKingNoCastlingPenalty;
-			}
-		}
-
-		mgScore -= KingAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[Both]);
+		mgScore -= KingVirtualAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[Both]);
 		mgScore += ClosePawnShieldBonus * CountBits(WhiteClosePawnShield[square] & position->bitboards[wP]);
 		mgScore += FarPawnShieldBonus * CountBits(WhiteFarPawnShield[square] & position->bitboards[wP]);
+
+		// I realise this doesnt exclude pawns below the king, but who cares
+		if (!(StackedMask[square] & position->bitboards[wP])) mgScore -= KingOpenFilePenalty;
 	}
 
 	piece = bK;
@@ -641,40 +618,32 @@ int Evaluate(const Position* position) {
 		int square = GLS1BI(bitboard);
 		ClearBit(bitboard, square);
 
+		bKingSquare = square;
+
 		mgScore -= MgTables[piece][square];
 		egScore -= EgTables[piece][square];
 
-		if (mgScore <= 0) {
-			if ((position->castling & BKC) == 0) {
-				mgScore += WeakKingNoCastlingPenalty;
-			}
-
-			if ((position->castling & BQC) == 0) {
-				mgScore += WeakKingNoCastlingPenalty;
-			}
-		}
-
-		mgScore += KingAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[Both]);
+		mgScore += KingVirtualAttackWeight * CountBits(GetQueenAttacks(square, position->occupancy[Both]) & ~position->occupancy[Both]);
 		mgScore -= ClosePawnShieldBonus * CountBits(BlackClosePawnShield[square] & position->bitboards[bP]);
 		mgScore -= FarPawnShieldBonus * CountBits(BlackFarPawnShield[square] & position->bitboards[bP]);
+
+		if (!(StackedMask[square] & position->bitboards[bP])) mgScore += KingOpenFilePenalty;
 	}
 
-	if (pawns == 0) {
-		int wKingSquare = GLS1BI(position->bitboards[wK]);
-		int bKingSquare = GLS1BI(position->bitboards[bK]);
-
-		if (egScore > 0) {
-			score += 4.7 * CenterManhattanDistance[bKingSquare];
-			score += 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
-		}
-		else if (egScore < 0) {
-			score -= 4.7 * CenterManhattanDistance[wKingSquare];
-			score -= 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
-		}
+	if (pawns == 0) { // mop up evaluation
+		score += 4.7 * CenterManhattanDistance[bKingSquare];
+		score += 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
+		
+		score -= 4.7 * CenterManhattanDistance[wKingSquare];
+		score -= 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
 	}
+	
+	//if (gamePhase == 0) { // king and pawn endgame
 
-	if (CountBits(position->bitboards[wB]) > 1) score += BishopPairBonus;
-	if (CountBits(position->bitboards[bB]) > 1) score -= BishopPairBonus;
+	//}
+
+	if (bishops[White] > 1) score += BishopPairBonus;
+	if (bishops[Black] > 1) score -= BishopPairBonus;
 
 	int mgPhase = gamePhase;
 	if (mgPhase > 24) mgPhase = 24;

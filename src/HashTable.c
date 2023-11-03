@@ -10,7 +10,10 @@ void ClearHashTable(HashTable* table) {
 		entry->score = 0;
 		entry->depth = 0;
 		entry->flag = 0;
+		entry->age = 0;
 	}
+
+	table->age = 0;
 }
 
 void InitHashTable(HashTable* table, const int MB) {
@@ -23,7 +26,7 @@ void InitHashTable(HashTable* table, const int MB) {
 
 	ClearHashTable(table);
 
-	printf("Hash table initialised with %d entries\n", table->count);
+	//printf("Hash table initialised with %d entries\n", table->count);
 }
 
 int GetHashEntry(int* pvMove, int alpha, int beta, int depth, Position* position) {
@@ -62,6 +65,14 @@ void StoreHashEntry(int move, int score, int depth, int flag, Position* position
 	int index = position->positionKey % position->hashTable->count;
 	HashEntry* entry = &position->hashTable->entries[index];
 
+	int replace = False;
+
+	if (position->hashTable->entries[index].positionKey == 0ULL ||
+		position->hashTable->entries[index].age < position->hashTable->age ||
+		position->hashTable->entries[index].depth <= depth) replace = True;
+
+	if (!replace) return;
+
 	if (score > MateScore) score += position->ply;
 	else if (score < -MateScore) score -= position->ply;
 
@@ -70,6 +81,7 @@ void StoreHashEntry(int move, int score, int depth, int flag, Position* position
 	entry->score = score;
 	entry->depth = depth;
 	entry->flag = flag;
+	entry->age = position->hashTable->age;
 }
 
 int GetPvMove(const Position* position) {
@@ -88,7 +100,7 @@ int GetPvLength(const int depth, Position* position) {
 	while (move && count < depth) {
 		if (MoveExists(move, position)) {
 			MakeMove(move, position);
-			position->pvArray[count] = move;
+			position->pvList[count] = move;
 			count++;
 		}
 		else break;

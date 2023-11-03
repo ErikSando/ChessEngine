@@ -1,27 +1,30 @@
 #include <stdio.h>
 #include "Definitions.h"
 
-long Perft(int depth, Position* position) {
+U64 Perft(int depth, Position* position) {
 	if (depth <= 0) return 1L;
 
-	long leafNodes = 0;
+	U64 nodes = 0;
 
 	MoveList list[1];
 	GenerateMoves(position, list);
 
+	// use this once the legal move generator is finished
+	//if (depth == 1) return (U64) list->count;
+
 	for (int i = 0; i < list->count; i++) {
 		if (!MakeMove(list->moves[i].move, position)) continue;
 
-		leafNodes += Perft(depth - 1, position);
+		nodes += Perft(depth - 1, position);
 
 		TakeMove(position);
 	}
 
-	return leafNodes;
+	return nodes;
 }
 
 void PerftTest(int depth, Position* position) {
-	long leafNodes = 0;
+	U64 nodes = 0;
 
 	MoveList list[1];
 	GenerateMoves(position, list);
@@ -33,20 +36,20 @@ void PerftTest(int depth, Position* position) {
 	for (int i = 0; i < list->count; i++) {
 		if (!MakeMove(list->moves[i].move, position)) continue;
 
-		long oldNodes = leafNodes;
-		leafNodes += Perft(depth - 1, position);
-		long newNodes = leafNodes - oldNodes;
+		U64 oldNodes = nodes;
+		nodes += Perft(depth - 1, position);
+		U64 newNodes = nodes - oldNodes;
 
-		printf("%s: %ld\n", MoveString(list->moves[i].move), newNodes);
+		printf("%s: %llu\n", MoveString(list->moves[i].move), newNodes);
 
 		TakeMove(position);
 	}
 
 	int time = GetTimeMS() - start;
-	int nps = time != 0 ? leafNodes / time * 1000 : 0;
+	int nps = time != 0 ? nodes / time * 1000 : 0;
 
 	printf("\n");
-	printf("Nodes visited:      %ld\n", leafNodes);
+	printf("Nodes visited:      %llu\n", nodes);
 	printf("Time elapsed:       %d ms\n", time);
 	printf("Nodes per second:   ");
 	nps != 0 ? printf("%d", nps) : printf("nil");

@@ -16,6 +16,9 @@ const int MvvLvaScore[12][12] = {
 	{ 605, 604, 603, 602, 601, 600, 605, 604, 603, 602, 601, 600 }
 };
 
+#define KillerScore0 90
+#define KillerScore1 80
+
 #define Move(from, to, piece, captured, promoted, flag) \
 	((from) | ((to) << 6) | ((piece) << 12) | ((captured) << 16) | (promoted << 20) | (flag))
 
@@ -79,10 +82,10 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			int move = Move(square, toSquare, piece, 0, 0, flag);
 			int score = 0;
 
-			if (position->killerMoves[0][position->ply] == move) score = 900;
-			else if (position->killerMoves[1][position->ply] == move) score = 800;
+			if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+			else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 			else score = position->historyMoves[piece][toSquare];
-
+			
 			AddMove(move, score, list);
 		}
 
@@ -126,10 +129,10 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			int move = Move(E1, G1, wK, 0, 0, CastlingFlag);
 			int score = 0;
 
-			if (position->killerMoves[0][position->ply] == move) score = 900;
-			else if (position->killerMoves[1][position->ply] == move) score = 800;
+			if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+			else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 			else score = position->historyMoves[wK][G1];
-
+			
 			AddMove(move, score, list);
 		}
 
@@ -143,10 +146,10 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			int move = Move(E1, C1, wK, 0, 0, CastlingFlag);
 			int score = 0;
 
-			if (position->killerMoves[0][position->ply] == move) score = 900;
-			else if (position->killerMoves[1][position->ply] == move) score = 800;
+			if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+			else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 			else score = position->historyMoves[wK][C1];
-
+			
 			AddMove(move, score, list);
 		}
 	}
@@ -160,8 +163,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			int move = Move(E8, G8, bK, 0, 0, CastlingFlag);
 			int score = 0;
 
-			if (position->killerMoves[0][position->ply] == move) score = 900;
-			else if (position->killerMoves[1][position->ply] == move) score = 800;
+			if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+			else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 			else score = position->historyMoves[bK][G8];
 
 			AddMove(move, score, list);
@@ -177,10 +180,10 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			int move = Move(E8, C8, bK, 0, 0, CastlingFlag);
 			int score = 0;
 
-			if (position->killerMoves[0][position->ply] == move) score = 900;
-			else if (position->killerMoves[1][position->ply] == move) score = 800;
+			if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+			else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 			else score = position->historyMoves[bK][C8];
-
+			
 			AddMove(move, score, list);
 		}
 	}
@@ -214,8 +217,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			else {
 				move = Move(square, toSquare, piece, 0, 0, NoFlag);
 
-				if (position->killerMoves[0][position->ply] == move) score = 900;
-				else if (position->killerMoves[1][position->ply] == move) score = 800;
+				if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+				else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 				else score = position->historyMoves[piece][toSquare];
 			}
 
@@ -252,8 +255,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			else {
 				move = Move(square, toSquare, piece, 0, 0, NoFlag);
 
-				if (position->killerMoves[0][position->ply] == move) score = 900;
-				else if (position->killerMoves[1][position->ply] == move) score = 800;
+				if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+				else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 				else score = position->historyMoves[piece][toSquare];
 			}
 
@@ -290,8 +293,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			else {
 				move = Move(square, toSquare, piece, 0, 0, NoFlag);
 
-				if (position->killerMoves[0][position->ply] == move) score = 900;
-				else if (position->killerMoves[1][position->ply] == move) score = 800;
+				if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+				else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 				else score = position->historyMoves[piece][toSquare];
 			}
 
@@ -328,8 +331,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			else {
 				move = Move(square, toSquare, piece, 0, 0, NoFlag);
 
-				if (position->killerMoves[0][position->ply] == move) score = 900;
-				else if (position->killerMoves[1][position->ply] == move) score = 800;
+				if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+				else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 				else score = position->historyMoves[piece][toSquare];
 			}
 
@@ -366,8 +369,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			else {
 				move = Move(square, toSquare, piece, 0, 0, NoFlag);
 
-				if (position->killerMoves[0][position->ply] == move) score = 900;
-				else if (position->killerMoves[1][position->ply] == move) score = 800;
+				if (move == position->killerMoves[0][position->ply]) score = KillerScore0;
+				else if (move == position->killerMoves[1][position->ply]) score = KillerScore1;
 				else score = position->historyMoves[piece][toSquare];
 			}
 

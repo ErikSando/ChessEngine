@@ -18,10 +18,11 @@ void ResetSearchInfo(Position* position, SearchInfo* info) {
 	memset(position->killerMoves, 0, sizeof(position->killerMoves));
 	memset(position->historyMoves, 0, sizeof(position->historyMoves));
 
-	position->ply = 0;
-
 	info->stopped = False;
 	info->nodes = 0;
+
+	position->ply = 0;
+	position->hashTable->age++;
 }
 
 static inline int IsRepetition(Position* position) {
@@ -40,8 +41,8 @@ static inline int IsRepetition(Position* position) {
 	return False;
 }
 
-static inline void OrderMove(int index, MoveList* list) {
-	Move move;
+static inline void OrderNextMove(int index, MoveList* list) {
+	Move move = list->moves[index];
 	int bestScore = list->moves[index].score;
 	int bestIndex = index;
 
@@ -52,7 +53,6 @@ static inline void OrderMove(int index, MoveList* list) {
 		}
 	}
 
-	move = list->moves[index];
 	list->moves[index] = list->moves[bestIndex];
 	list->moves[bestIndex] = move;
 }
@@ -78,7 +78,7 @@ static inline int Quiescence(int alpha, int beta, Position* position, SearchInfo
 	GenerateCaptures(position, list);
 
 	for (int i = 0; i < list->count; i++) {
-		OrderMove(i, list);
+		OrderNextMove(i, list);
 
 		if (!MakeMove(list->moves[i].move, position)) continue;
 
@@ -106,30 +106,34 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 	info->nodes++;
 
 	if (IsRepetition(position) || position->fiftyMoveRule >= 100) return 0;
-	if (position->ply >= MaxDepth) return Evaluate(position);
-
-	int kingSquare = GLS1BI(position->bitboards[position->side == White ? wK : bK]);
-	int inCheck = SquareAttacked(kingSquare, position->side ^ 1, position);
-
-	if (inCheck) depth++;
-	else {
-		int opponentKingSquare = GLS1BI(position->bitboards[position->side == White ? bK : wK]);
-		int opponentInCheck = SquareAttacked(opponentKingSquare, position->side, position);
-
-		if (opponentInCheck) depth++;
-	}
 
 	int pvMove = 0;
 	int pvNode = beta - alpha > 1;
 	int score = GetHashEntry(&pvMove, alpha, beta, depth, position);
 
 	if (position->ply && score != NoScore && !pvNode) return score;
+
+	if (position->ply >= MaxDepth) return Evaluate(position);
+
+	int kingSquare = GLS1BI(position->bitboards[position->side == White ? wK : bK]);
+	int inCheck = SquareAttacked(kingSquare, position->side ^ 1, position);
+
+	int extension = 0;
+
+	if (inCheck) extension = 1;
+	else {
+		int opponentKingSquare = GLS1BI(position->bitboards[position->side == White ? bK : wK]);
+		int opponentInCheck = SquareAttacked(opponentKingSquare, position->side, position);
+
+		if (opponentInCheck) extension = 1;
+	}
+
 	//if (position->ply && score != NoScore) return score;
 
-	if (doNull && !inCheck && position->ply && depth >= 3) {
+	if (doNull && !inCheck && position->ply && depth >= 3 && position->bigPieces[position->side] > 1) {
 		MakeNullMove(position);
 
-		score = -AlphaBeta(-beta, -beta + 1, depth - 1 - NullMoveReduction, position, info, True);
+		score = -AlphaBeta(-beta, -beta + 1, depth - 1 - NullMoveReduction, position, info, False);
 
 		TakeNullMove(position);
 
@@ -158,7 +162,7 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 	int hashFlag = AlphaFlag;
 
 	for (int i = 0; i < list->count; i++) {
-		OrderMove(i, list);
+		OrderNextMove(i, list);
 
 		int move = list->moves[i].move;
 
@@ -167,19 +171,19 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 		legalMoves++;
 
 		if (movesSearched == 0) {
-			score = -AlphaBeta(-beta, -alpha, depth - 1, position, info, True);
+			score = -AlphaBeta(-beta, -alpha, depth - 1 + extension, position, info, True);
 		}
 		else {
 			if (!inCheck && movesSearched >= FullDepthMoves && depth >= ReductionLimit && list->moves[i].score == 0) {
-				score = -AlphaBeta(-alpha - 1, -alpha, depth - 2, position, info, True);
+				score = -AlphaBeta(-alpha - 1, -alpha, depth - 2 + extension, position, info, True);
 			}
 			else score = alpha + 1;
 
 			if (score > alpha) {
-				score = -AlphaBeta(-alpha - 1, -alpha, depth - 1, position, info, True);
+				score = -AlphaBeta(-alpha - 1, -alpha, depth - 1 + extension, position, info, True);
 
 				if (score > alpha && score < beta) {
-					score = -AlphaBeta(-beta, -alpha, depth - 1, position, info, True);
+					score = -AlphaBeta(-beta, -alpha, depth - 1 + extension, position, info, True);
 				}
 			}
 		}
@@ -203,7 +207,6 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 			}
 
 			bestMove = move;
-
 			hashFlag = ExactFlag;
 			alpha = score;
 
@@ -219,7 +222,7 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 	}
 
 	StoreHashEntry(bestMove, alpha, depth, hashFlag, position);
-	
+
 	return alpha;
 }
 
@@ -229,12 +232,23 @@ void Search(Position* position, SearchInfo* info) {
 	int alpha = -Infinity;
 	int beta = Infinity;
 
-	for (int depth = 1; depth <= info->depth; depth++) {
+	for (int depth = 1; depth <= info->depth;) {
 		int score = AlphaBeta(alpha, beta, depth, position, info, True);
 
 		if (info->stopped) break;
 
-		int pvLength = GetPvLength(depth, position);
+		if (score <= alpha) {
+			alpha = -Infinity;
+			continue;
+		}
+
+		if (score >= beta) {
+			beta = Infinity;
+			continue;
+		}
+
+		alpha = score - Window;
+		beta = score + Window;
 
 		printf("info score ");
 
@@ -242,24 +256,19 @@ void Search(Position* position, SearchInfo* info) {
 		else if (score < -MateScore) printf("mate %d ", -(score + Infinity) / 2 - 1);
 		else printf("cp %d ", score);
 
-		printf("depth %d nodes %d time %d pv",
+		printf("depth %d nodes %llu time %d pv",
 			depth, info->nodes, (GetTimeMS() - info->startTime));
 
+		int pvLength = GetPvLength(depth, position);
+
 		for (int i = 0; i < pvLength; i++) {
-			printf(" %s", MoveString(position->pvArray[i]));
+			printf(" %s", MoveString(position->pvList[i]));
 		}
 
 		printf("\n");
 
-		if (score <= alpha || score >= beta) {
-			alpha = -Infinity;
-			beta = Infinity;
-			continue;
-		}
-
-		alpha = score - Window;
-		beta = score + Window;
+		depth++;
 	}
 
-	printf("bestmove %s\n", MoveString(position->pvArray[0]));
+	printf("bestmove %s\n", MoveString(position->pvList[0]));
 }

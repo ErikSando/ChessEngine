@@ -6,7 +6,8 @@
 void ResetBoard(Position* position) {
 	memset(position->bitboards, 0ULL, sizeof(position->bitboards));
 	memset(position->occupancy, 0ULL, sizeof(position->occupancy));
-	//memset(position->history, 0, sizeof(position->history));
+	memset(position->bigPieces, 0, sizeof(position->bigPieces));
+	memset(position->history, 0, sizeof(position->history));
 
 	position->positionKey = 0ULL;
 	position->side = Both;
@@ -99,6 +100,8 @@ void ParseFEN(char* fen, Position* position) {
 				int colour = PieceColour[piece];
 				SetBit(position->occupancy[colour], square);
 				SetBit(position->occupancy[Both], square);
+
+				if (IsBigPiece(piece)) position->bigPieces[colour]++;
 			}
 
 			file++;

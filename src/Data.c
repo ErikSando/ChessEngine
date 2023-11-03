@@ -19,4 +19,6 @@ int PieceRook[12] = { False, False, False, True, False, False, False, False, Fal
 int PieceQueen[12] = { False, False, False, False, True, False, False, False, False, False, True, False };
 int PieceKing[12] = { False, False, False, False, False, True, False, False, False, False, False, True };
 
+int PieceBig[12] = { False, True, True, True, True, True, False, True, True, True, True, True };
+
 int PieceColour[12] = { White, White, White, White, White, White, Black, Black, Black, Black, Black, Black };
