@@ -631,11 +631,14 @@ int Evaluate(const Position* position) {
 	}
 
 	if (pawns == 0) { // mop up evaluation
-		score += 4.7 * CenterManhattanDistance[bKingSquare];
-		score += 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
-		
-		score -= 4.7 * CenterManhattanDistance[wKingSquare];
-		score -= 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
+		if (egScore > 0) {
+			score += 4.7 * CenterManhattanDistance[bKingSquare];
+			score += 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));	
+		}
+		else {
+			score -= 4.7 * CenterManhattanDistance[wKingSquare];
+			score -= 1.6 * (14 - ManhattanDistance(wKingSquare, bKingSquare));
+		}
 	}
 	
 	//if (gamePhase == 0) { // king and pawn endgame

@@ -118,7 +118,7 @@ void UCILoop() {
 	//printf("id name %s\n", NAME);
 	//printf("id author Erik\n\n");
 
-	while (True) {
+	for (;;) {
 		memset(input, 0, sizeof(input));
 
 		fflush(stdout);

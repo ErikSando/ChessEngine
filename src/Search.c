@@ -25,20 +25,18 @@ void ResetSearchInfo(Position* position, SearchInfo* info) {
 	position->hashTable->age++;
 }
 
-static inline int IsRepetition(Position* position) {
-	//int repetitions = 0;
-	int start = position->historyPly - position->fiftyMoveRule;
-	if (start > 0) start = 0;
+static inline int ThreeFoldRepetition(Position* position) {
+	int repetitions = 0;
 
+	for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i += 2) {
 	//for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i += 2) {
-	for (int i = start; i < position->historyPly - 1; i += 2) {
-		//if (position->positionKey == position->history[i].positionKey) repetitions++;
-		if (position->positionKey == position->history[i].positionKey) return True;
+		if (position->positionKey == position->history[i].positionKey) repetitions++;
+		//if (position->positionKey == position->history[i].positionKey) return True;
 	}
 
 	// current position is not counted, so 2 repetitions would mean 3 total occurences
-	//return repetitions >= 2;
-	return False;
+	return repetitions >= 2;
+	//return False;
 }
 
 static inline void OrderNextMove(int index, MoveList* list) {
@@ -62,7 +60,7 @@ static inline int Quiescence(int alpha, int beta, Position* position, SearchInfo
 
 	info->nodes++;
 
-	if (IsRepetition(position) || position->fiftyMoveRule >= 100) return 0;
+	if (ThreeFoldRepetition(position) || position->fiftyMoveRule >= 100) return 0;
 
 	int score = Evaluate(position);
 
@@ -105,14 +103,13 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 
 	info->nodes++;
 
-	if (IsRepetition(position) || position->fiftyMoveRule >= 100) return 0;
+	if (ThreeFoldRepetition(position) || position->fiftyMoveRule >= 100) return 0;
 
 	int pvMove = 0;
 	int pvNode = beta - alpha > 1;
 	int score = GetHashEntry(&pvMove, alpha, beta, depth, position);
 
 	if (position->ply && score != NoScore && !pvNode) return score;
-
 	if (position->ply >= MaxDepth) return Evaluate(position);
 
 	int kingSquare = GLS1BI(position->bitboards[position->side == White ? wK : bK]);
@@ -128,8 +125,6 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 		if (opponentInCheck) extension = 1;
 	}
 
-	//if (position->ply && score != NoScore) return score;
-
 	if (doNull && !inCheck && position->ply && depth >= 3 && position->bigPieces[position->side] > 1) {
 		MakeNullMove(position);
 
@@ -144,7 +139,6 @@ static inline int AlphaBeta(int alpha, int beta, int depth, Position* position, 
 
 	int legalMoves = 0;
 	int movesSearched = 0;
-	int oldAlpha = alpha;
 	int bestMove = 0;
 
 	MoveList list[1];

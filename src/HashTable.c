@@ -39,12 +39,11 @@ int GetHashEntry(int* pvMove, int alpha, int beta, int depth, Position* position
 		if (entry->depth >= depth) {
 			int score = entry->score;
 
+			if (score > MateScore) score -= position->ply;
+			else if (score < -MateScore) score += position->ply;
+
 			switch (entry->flag) {
 				case ExactFlag:
-					// if (score >= MateScore) ??? if (score <= -MateScore) ???
-					if (score > MateScore) score -= position->ply;
-					else if (score < -MateScore) score += position->ply;
-
 					return score;
 
 				case AlphaFlag:
@@ -72,6 +71,9 @@ void StoreHashEntry(int move, int score, int depth, int flag, Position* position
 		position->hashTable->entries[index].depth <= depth) replace = True;
 
 	if (!replace) return;
+
+	// there seems to be a bug with mating, it doesn't always play the fastest mate
+	// sometimes the bot will draw an endgame even if it sees a mate ?????????
 
 	if (score > MateScore) score += position->ply;
 	else if (score < -MateScore) score -= position->ply;
