@@ -70,6 +70,8 @@ int MakeMove(int move, Position* position) {
 
 	position->fiftyMoveRule++;
 
+	int isCastling = IsCastling(move);
+
 	if (IsPawn(piece)) {
 		position->fiftyMoveRule = 0;
 
@@ -100,7 +102,7 @@ int MakeMove(int move, Position* position) {
 			ClearBit(position->occupancy[White], toSquare + 8);
 		}
 	}
-	else if (IsCastling(move)) {
+	else if (isCastling) {
 		switch (toSquare) {
 			case G1:
 				ClearBit(position->bitboards[wR], H1);
@@ -139,7 +141,8 @@ int MakeMove(int move, Position* position) {
 
 	int kingSquare = GLS1BI(position->bitboards[side == White ? wK : bK]);
 
-	if (SquareAttacked(kingSquare, enemy, position)) {
+	// Castling moves are only generated if the destination square is not attacked, so this check isn't needed for castling moves
+	if (!isCastling && SquareAttacked(kingSquare, enemy, position)) {
 		TakeMove(position);
 		return False;
 	}

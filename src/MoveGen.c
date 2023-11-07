@@ -124,7 +124,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			!GetBit(position->occupancy[Both], F1) &&
 			!GetBit(position->occupancy[Both], G1) &&
 			!SquareAttacked(E1, Black, position) &&
-			!SquareAttacked(F1, Black, position)
+			!SquareAttacked(F1, Black, position) &&
+			!SquareAttacked(G1, Black, position) // saves time in make move by checking now instead of later
 		) {
 			int move = Move(E1, G1, wK, 0, 0, CastlingFlag);
 			int score = 0;
@@ -141,7 +142,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			!GetBit(position->occupancy[Both], C1) &&
 			!GetBit(position->occupancy[Both], B1) &&
 			!SquareAttacked(E1, Black, position) &&
-			!SquareAttacked(D1, Black, position)
+			!SquareAttacked(D1, Black, position) &&
+			!SquareAttacked(C1, Black, position)
 		) {
 			int move = Move(E1, C1, wK, 0, 0, CastlingFlag);
 			int score = 0;
@@ -158,7 +160,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			!GetBit(position->occupancy[Both], F8) &&
 			!GetBit(position->occupancy[Both], G8) &&
 			!SquareAttacked(E8, White, position) &&
-			!SquareAttacked(F8, White, position)
+			!SquareAttacked(F8, White, position) &&
+			!SquareAttacked(G8, White, position)
 		) {
 			int move = Move(E8, G8, bK, 0, 0, CastlingFlag);
 			int score = 0;
@@ -175,7 +178,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 			!GetBit(position->occupancy[Both], C8) &&
 			!GetBit(position->occupancy[Both], B8) &&
 			!SquareAttacked(E8, White, position) &&
-			!SquareAttacked(D8, White, position)
+			!SquareAttacked(D8, White, position) &&
+			!SquareAttacked(C8, White, position)
 		) {
 			int move = Move(E8, C8, bK, 0, 0, CastlingFlag);
 			int score = 0;
@@ -352,6 +356,8 @@ void GenerateMoves(const Position* position, MoveList* list) {
 		while (attacks) {
 			int toSquare = GLS1BI(attacks);
 			ClearBit(attacks, toSquare);
+
+			// Filtering out some illegal moves here doesn't help speed up perft
 
 			int move;
 			int score = 0;

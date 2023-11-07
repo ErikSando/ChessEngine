@@ -246,6 +246,8 @@ void Search(Position* position, SearchInfo* info) {
 
 		printf("info score ");
 
+		// mating score doesnt send to GUI properly when side to move is being mated ??????????
+
 		if (score > MateScore) printf("mate %d ", (Infinity - score) / 2 + 1);
 		else if (score < -MateScore) printf("mate %d ", -(score + Infinity) / 2 - 1);
 		else printf("cp %d ", score);

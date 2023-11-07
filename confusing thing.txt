@@ -1,0 +1,1 @@
+Sometimes the perft will be around 25% slower the next time I open the executable, even if it hasn't been recompiled !!????????
