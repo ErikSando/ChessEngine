@@ -19,7 +19,7 @@ void ResetSearchInfo(Position* position, SearchInfo* info) {
 	memset(position->historyMoves, 0, sizeof(position->historyMoves));
 
 	info->stopped = False;
-	info->nodes = 0;
+	info->nodes = 0ULL;
 
 	position->ply = 0;
 	position->hashTable->age++;

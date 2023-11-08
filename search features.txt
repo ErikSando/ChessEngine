@@ -19,7 +19,7 @@ time:	344
 
 (starting position doesnt have many captures so this effect would be larger in most positions)
 
-*time it isnt accurate at small values
+*time isnt accurate at small values
 
 killer/history heuristics (depth 6):
 
