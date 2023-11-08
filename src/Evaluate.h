@@ -1,3 +1,6 @@
+#ifndef Evaluate_h
+#define Evaluate_h
+
 #include "Definitions.h"
 
 #define MirrorSquare(square) ((square) ^ 56)
@@ -170,3 +173,5 @@ const int GamePhaseIncrement[12] = { 0, 1, 1, 2, 4, 0, 1, 1, 2, 4, 0 };
 
 int MgTables[12][64];
 int EgTables[12][64];
+
+#endif
