@@ -1,1 +1,0 @@
-Filter out illegal king moves during move generation, and don't check if the king is attacked in make move if it is a king move

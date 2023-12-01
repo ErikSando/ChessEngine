@@ -17,9 +17,7 @@ unsigned int Rand32() {
 	number ^= number >> 17;
 	number ^= number << 5;
 
-	state = number;
-
-	return number;
+	return state = number;
 }
 
 U64 Rand64() {
