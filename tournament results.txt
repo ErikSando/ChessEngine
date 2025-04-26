@@ -1,5 +1,7 @@
 Tournament Results
 
+* Engines may repeat games if given the same pieces and opponent, likely seen with Erik Engine v1.1 VS Vice 1.1
+
 Erik Engine v1.1
 
 VS BBC 1.1 (2096)

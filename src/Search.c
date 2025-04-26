@@ -28,8 +28,7 @@ void ResetSearchInfo(Position* position, SearchInfo* info) {
 static inline int ThreeFoldRepetition(Position* position) {
 	int repetitions = 0;
 
-	for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i += 2) {
-	//for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i += 2) {
+	for (int i = position->historyPly - position->fiftyMoveRule; i < position->historyPly - 1; i++) {
 		if (position->positionKey == position->history[i].positionKey) repetitions++;
 		//if (position->positionKey == position->history[i].positionKey) return True;
 	}

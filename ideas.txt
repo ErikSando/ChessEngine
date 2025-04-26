@@ -1,0 +1,29 @@
+* Most (all) evaluation stuff hasn't been tweaked
+
+Don't waste the best move of uncompleted searches
+
+Test counter move heuristic, results seem to be extremely small (maybe the implementation is incorrect?)
+
+Assert function for debugging
+
+better move ordering:
+
+- if not a capture, score higher based on how much it improves piece square table evaluation (maybe only for knights/bishops/rooks/queens)
+
+- 
+
+castling strategy:
+
+- penalty for king not being on safe square without castling (completed)
+- penalty for rook blocked by uncastled king
+- 
+
+king safety:
+
+- virtual queen mobility on king square (completed)
+- pawn shield (completed)
+- pawn storm
+
+pawn structure:
+
+- connected pawns (for each pawn check if another pawn defends it)
