@@ -2,7 +2,7 @@
 #define Definitions_h
 
 #define NAME "Erik Engine"
-#define VERSION "1.2"
+#define VERSION "1.3"
 
 #define MaxGameMoves 2048
 #define MaxPositionMoves 256
