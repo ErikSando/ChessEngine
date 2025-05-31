@@ -7,7 +7,7 @@ char* SquareString(int square) {
 	int file = GetFile(square);
 	int rank = GetRank(square);
 
-	sprintf(string, "%c%c", (file + 'a'), (rank + '1'));
+	sprintf(string, "%c%c", ('a' + file), ('1' + rank));
 
 	return string;
 }
@@ -19,10 +19,10 @@ char* MoveString(int move) {
 	int from = FromSquare(move);
 	int to = ToSquare(move);
 
-	int fromFile = GetFile(from) + 'a';
-	int fromRank = GetRank(from) + '1';
-	int toFile = GetFile(to) + 'a';
-	int toRank = GetRank(to) + '1';
+	int fromFile = 'a' + GetFile(from);
+	int fromRank = '1' + GetRank(from);
+	int toFile = 'a' + GetFile(to);
+	int toRank = '1' + GetRank(to);
 
 	int promoted = PromotedPiece(move);
 

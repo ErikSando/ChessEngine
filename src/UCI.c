@@ -145,7 +145,7 @@ void UCILoop() {
 		else if (!strncmp(input, "go", 2)) {
 			ParseGo(input, position);
 		}
-		else if (!strncmp(input, "quit", 4)) {
+		else if (!strncmp(input, "quit", 4) || !strncmp(input, "exit", 4)) {
 			break;
 		}
 		else if (!strncmp(input, "print", 5)) {

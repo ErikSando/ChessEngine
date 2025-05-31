@@ -51,6 +51,7 @@ void GenerateMoves(const Position* position, MoveList* list) {
 	int direction = side == White ? 8 : -8;
 	int promotionRank = side == White ? Rank8 : Rank1;
 
+	// pawns
 	U64 bitboard = position->bitboards[piece];
 
 	while (bitboard) {

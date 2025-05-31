@@ -10,10 +10,7 @@ U64 Perft(int depth, Position* position) {
 	GenerateMoves(position, list);
 
 	// use this once the legal move generator is finished
-	// vvv new comments vvv
-	// just checked, using this returns incorrect perft results
-	// must mean move generator is generating illegal moves
-	//if (depth == 1) return (U64) list->count;
+	// if (depth == 1) return (U64) list->count;
 
 	for (int i = 0; i < list->count; i++) {
 		if (!MakeMove(list->moves[i].move, position)) continue;
